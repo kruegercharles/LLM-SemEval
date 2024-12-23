@@ -1,8 +1,7 @@
 from typing import List, Optional
-
 import fire
-
 from llama import Llama, Dialog
+from statistics import mode
 
 
 # Config
@@ -12,15 +11,17 @@ USE_CHAT = True
 USE_TEXT_GEN = not USE_CHAT
 
 # Llm config:
-TEMPERATURE = 0.6
-TOP_P = 0.9
-MAX_SEQ_LEN = 512
-MAX_GEN_LEN = 64
-MAX_BATCH_SIZE = 4
+TEMPERATURE = 0.6 # Default: 0.6
+TOP_P = 0.9 # Default: 0.9
+MAX_SEQ_LEN = 512 # Default: 256 for text_gen, 512 for chat
+MAX_GEN_LEN = 64 # Default: 64
+MAX_BATCH_SIZE = 4 # Default: 4
 
 # What sentence to classify
 SENTENCE = "About 2 weeks ago I thought I pulled a muscle in my calf"
 
+# We can query the model multiple times and then take the most common answer
+NUM_ANSWERS = 5
 
 
 def text_gen(
@@ -96,21 +97,34 @@ def chat(
             {"role": "system", "content": "There are 5 different categories for emotions: Anger, Fear, Joy, Sadness, Surprise. Classify the following sentence in none or one or more of these categories. Only answer with none or the appropriate category or categories."},
             {"role": "user", "content": "Sentence: " + SENTENCE},
         ],
-
     ]
-    results = generator.chat_completion(
-        dialogs,
-        max_gen_len=max_gen_len,
-        temperature=temperature,
-        top_p=top_p,
-    )
+
+    all_results:List[str] = []
+
+    for i in range(NUM_ANSWERS):
+        results = generator.chat_completion(
+            dialogs,
+            max_gen_len=max_gen_len,
+            temperature=temperature,
+            top_p=top_p,
+        )
+        all_results.append(str(results[0]['generation']['content']))
+
+    most_common = mode(all_results)
+
 
     for dialog, result in zip(dialogs, results):
         print("\n==================================\n")
         for msg in dialog:
             print(f"{msg['role'].capitalize()}: {msg['content']}\n")
+
+        print("All answers:")
+        for i in range(NUM_ANSWERS):
+            print(f"Assistant: {all_results[i]}")
+
+        print("\nMost common answer:")
         print(
-            f"> {result['generation']['role'].capitalize()}: {result['generation']['content']}"
+            f"Assistant: {most_common}"
         )
         print("\n==================================\n")
 
