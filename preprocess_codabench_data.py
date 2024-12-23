@@ -112,6 +112,10 @@ def parse_line(line: str) -> list:
     # remove whitespace at the beginning and end
     line = line.strip()
 
+    # if the line ends with :, replace it with a .
+    if line.endswith(":"):
+        line = line[:-1] + "."
+
     # the sentence is what is left of the line
     parts.append(line)
 
@@ -124,14 +128,22 @@ def parse_line(line: str) -> list:
         print("Parts:", parts)
         raise ValueError(f"Expected 7 parts but got {len(parts)}. Line: {line}")
 
-    print("Line Parse Result:", parts)
-    print("*" * 50)
-
     return parts
 
 
 def main():
     for path in INPUT_PATHS:
+        # in path1 there are only binary emotions (either the emotion is there or not, 0 or 1)
+        # in path2 there are complex for the bonus task (0 - 3)
+        # this is important for the parsing below
+        use_complex_emotions = False
+        if path == INPUT_PATH_1:
+            use_complex_emotions = False
+        elif path == INPUT_PATH_2:
+            use_complex_emotions = True
+        else:
+            raise ValueError(f"Unexpected path: {path}")
+
         with open(path, "r") as f:
             data = f.readlines()
 
@@ -162,20 +174,58 @@ def main():
 
             emotions = []
             # get the emotions
-            if int(line_parsed[2]) >= 1:
-                emotions.append("Anger")
-            if int(line_parsed[3]) >= 1:
-                emotions.append("Fear")
-            if int(line_parsed[4]) >= 1:
-                emotions.append("Joy")
-            if int(line_parsed[5]) >= 1:
-                emotions.append("Sadness")
-            if int(line_parsed[6]) >= 1:
-                emotions.append("Surprise")
-            if len(emotions) == 0:
-                emotions.append("None")
+            if use_complex_emotions:
+                if int(line_parsed[2]) == 1:
+                    emotions.append("light anger")
+                if int(line_parsed[2]) == 2:
+                    emotions.append("medium anger")
+                if int(line_parsed[2]) == 3:
+                    emotions.append("strong anger")
+                if int(line_parsed[3]) == 1:
+                    emotions.append("light fear")
+                if int(line_parsed[3]) == 2:
+                    emotions.append("medium fear")
+                if int(line_parsed[3]) == 3:
+                    emotions.append("strong fear")
+                if int(line_parsed[4]) == 1:
+                    emotions.append("light joy")
+                if int(line_parsed[4]) == 2:
+                    emotions.append("medium joy")
+                if int(line_parsed[4]) == 3:
+                    emotions.append("strong joy")
+                if int(line_parsed[5]) == 1:
+                    emotions.append("light sadness")
+                if int(line_parsed[5]) == 2:
+                    emotions.append("medium sadness")
+                if int(line_parsed[5]) == 3:
+                    emotions.append("strong sadness")
+                if int(line_parsed[6]) == 1:
+                    emotions.append("light surprise")
+                if int(line_parsed[6]) == 2:
+                    emotions.append("medium surprise")
+                if int(line_parsed[6]) == 3:
+                    emotions.append("strong surprise")
+                if len(emotions) == 0:
+                    emotions.append("None")
+            else:
+                if int(line_parsed[2]) >= 1:
+                    emotions.append("anger")
+                if int(line_parsed[3]) >= 1:
+                    emotions.append("fear")
+                if int(line_parsed[4]) >= 1:
+                    emotions.append("joy")
+                if int(line_parsed[5]) >= 1:
+                    emotions.append("sadness")
+                if int(line_parsed[6]) >= 1:
+                    emotions.append("surprise")
+                if len(emotions) == 0:
+                    emotions.append("None")
 
             dataset.append({"id": id, "sentence": sentence, "emotions": emotions})
+            print(
+                "Parsed line:", {"id": id, "sentence": sentence, "emotions": emotions}
+            )
+            print("*" * 50)
 
         print("Dataset length:", len(dataset))
 
