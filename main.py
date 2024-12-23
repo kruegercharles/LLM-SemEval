@@ -11,11 +11,11 @@ USE_CHAT = True
 USE_TEXT_GEN = not USE_CHAT
 
 # Llm config:
-TEMPERATURE = 0.6 # Default: 0.6
-TOP_P = 0.9 # Default: 0.9
-MAX_SEQ_LEN = 512 # Default: 256 for text_gen, 512 for chat
-MAX_GEN_LEN = 64 # Default: 64
-MAX_BATCH_SIZE = 4 # Default: 4
+TEMPERATURE = 0.6  # Default: 0.6
+TOP_P = 0.9  # Default: 0.9
+MAX_SEQ_LEN = 512  # Default: 256 for text_gen, 512 for chat
+MAX_GEN_LEN = 64  # Default: 64
+MAX_BATCH_SIZE = 4  # Default: 4
 
 # What sentence to classify
 SENTENCE = "About 2 weeks ago I thought I pulled a muscle in my calf"
@@ -27,11 +27,11 @@ NUM_ANSWERS = 5
 def text_gen(
     ckpt_dir: str,
     tokenizer_path: str,
-    temperature= TEMPERATURE,
-    top_p = TOP_P,
-    max_seq_len = MAX_SEQ_LEN,
-    max_gen_len = MAX_GEN_LEN,
-    max_batch_size = MAX_BATCH_SIZE,
+    temperature=TEMPERATURE,
+    top_p=TOP_P,
+    max_seq_len=MAX_SEQ_LEN,
+    max_gen_len=MAX_GEN_LEN,
+    max_batch_size=MAX_BATCH_SIZE,
 ):
     """
     Examples to run with the pre-trained models (no fine-tuning). Prompts are
@@ -47,7 +47,10 @@ def text_gen(
         max_batch_size=max_batch_size,
     )
 
-    prompts: List[str] = ["There are 5 different categories for emotions: Anger, Fear, Joy, Sadness, Surprise. Classify the following sentence in none or one or more of these categories. Only answer with none or the appropriate category or categories. Sentence: " + SENTENCE]
+    prompts: List[str] = [
+        "There are 5 different categories for emotions: Anger, Fear, Joy, Sadness, Surprise. Classify the following sentence in none or one or more of these categories. Only answer with none or the appropriate category or categories. Sentence: "
+        + SENTENCE
+    ]
 
     results = generator.text_completion(
         prompts,
@@ -61,17 +64,17 @@ def text_gen(
         print("Prompt:")
         print(prompt)
         print("Result:")
-        print(result['generation'])
+        print(result["generation"])
         print("\n==================================\n")
 
 
 def chat(
     ckpt_dir: str,
     tokenizer_path: str,
-    temperature =TEMPERATURE,
-    top_p = TOP_P,
-    max_seq_len = MAX_SEQ_LEN,
-    max_batch_size = MAX_BATCH_SIZE,
+    temperature=TEMPERATURE,
+    top_p=TOP_P,
+    max_seq_len=MAX_SEQ_LEN,
+    max_batch_size=MAX_BATCH_SIZE,
     max_gen_len: Optional[int] = None,
 ):
     """
@@ -94,12 +97,15 @@ def chat(
 
     dialogs: List[Dialog] = [
         [
-            {"role": "system", "content": "There are 5 different categories for emotions: Anger, Fear, Joy, Sadness, Surprise. Classify the following sentence in none or one or more of these categories. Only answer with none or the appropriate category or categories."},
+            {
+                "role": "system",
+                "content": "There are 5 different categories for emotions: Anger, Fear, Joy, Sadness, Surprise. Classify the following sentence in none or one or more of these categories. Only answer with none or the appropriate category or categories.",
+            },
             {"role": "user", "content": "Sentence: " + SENTENCE},
         ],
     ]
 
-    all_results:List[str] = []
+    all_results: List[str] = []
 
     for i in range(NUM_ANSWERS):
         results = generator.chat_completion(
@@ -108,10 +114,9 @@ def chat(
             temperature=temperature,
             top_p=top_p,
         )
-        all_results.append(str(results[0]['generation']['content']))
+        all_results.append(str(results[0]["generation"]["content"]))
 
     most_common = mode(all_results)
-
 
     for dialog, result in zip(dialogs, results):
         print("\n==================================\n")
@@ -123,9 +128,7 @@ def chat(
             print(f"Assistant: {all_results[i]}")
 
         print("\nMost common answer:")
-        print(
-            f"Assistant: {most_common}"
-        )
+        print(f"Assistant: {most_common}")
         print("\n==================================\n")
 
 
