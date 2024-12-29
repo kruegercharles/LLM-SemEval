@@ -7,8 +7,6 @@ INPUT_PATH_2 = "data/codabench_data/train/eng_b.csv"
 
 INPUT_PATHS = [INPUT_PATH_1, INPUT_PATH_2]
 
-PRINT_LINES = False
-
 
 def main():
     for path in INPUT_PATHS:
@@ -97,14 +95,11 @@ def main():
                         emotions.append("None")
 
                 dataset.append({"id": id, "sentence": sentence, "emotions": emotions})
-
-                if PRINT_LINES:
-                    print("*" * 50)
-                    print(
-                        "Parsed line:",
-                        {"id": id, "sentence": sentence, "emotions": emotions},
-                    )
-                    print("*" * 50)
+                print(
+                    "Parsed line:",
+                    {"id": id, "sentence": sentence, "emotions": emotions},
+                )
+                print("*" * 50)
 
             print("Dataset length:", len(dataset))
 
