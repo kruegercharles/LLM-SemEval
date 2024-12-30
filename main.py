@@ -1,8 +1,9 @@
-from typing import List, Optional
-import fire
-from llama import Llama, Dialog
 from statistics import mode
+from typing import List, Optional
 
+import fire
+
+from llama import Dialog, Llama
 
 # Config
 
@@ -23,6 +24,8 @@ SENTENCE = "About 2 weeks ago I thought I pulled a muscle in my calf"
 # We can query the model multiple times and then take the most common answer
 NUM_ANSWERS = 5
 
+SYSTEM_PROMPT = "There are 5 different categories for emotions: Anger, Fear, Joy, Sadness, Surprise. Classify the following sentence in none or one or more of these categories. Only answer with none or the appropriate category or categories."
+
 
 def text_gen(
     ckpt_dir: str,
@@ -33,13 +36,6 @@ def text_gen(
     max_gen_len=MAX_GEN_LEN,
     max_batch_size=MAX_BATCH_SIZE,
 ):
-    """
-    Examples to run with the pre-trained models (no fine-tuning). Prompts are
-    usually in the form of an incomplete text prefix that the model can then try to complete.
-
-    The context window of llama3 models is 8192 tokens, so `max_seq_len` needs to be <= 8192.
-    `max_gen_len` is needed because pre-trained models usually do not stop completions naturally.
-    """
     generator = Llama.build(
         ckpt_dir=ckpt_dir,
         tokenizer_path=tokenizer_path,
@@ -47,10 +43,7 @@ def text_gen(
         max_batch_size=max_batch_size,
     )
 
-    prompts: List[str] = [
-        "There are 5 different categories for emotions: Anger, Fear, Joy, Sadness, Surprise. Classify the following sentence in none or one or more of these categories. Only answer with none or the appropriate category or categories. Sentence: "
-        + SENTENCE
-    ]
+    prompts: List[str] = [SYSTEM_PROMPT + " Sentence: " + SENTENCE]
 
     results = generator.text_completion(
         prompts,
@@ -77,17 +70,6 @@ def chat(
     max_batch_size=MAX_BATCH_SIZE,
     max_gen_len: Optional[int] = None,
 ):
-    """
-    Examples to run with the models finetuned for chat. Prompts correspond of chat
-    turns between the user and assistant with the final one always being the user.
-
-    An optional system prompt at the beginning to control how the model should respond
-    is also supported.
-
-    The context window of llama3 models is 8192 tokens, so `max_seq_len` needs to be <= 8192.
-
-    `max_gen_len` is optional because finetuned models are able to stop generations naturally.
-    """
     generator = Llama.build(
         ckpt_dir=ckpt_dir,
         tokenizer_path=tokenizer_path,
@@ -99,7 +81,7 @@ def chat(
         [
             {
                 "role": "system",
-                "content": "There are 5 different categories for emotions: Anger, Fear, Joy, Sadness, Surprise. Classify the following sentence in none or one or more of these categories. Only answer with none or the appropriate category or categories.",
+                "content": SYSTEM_PROMPT,
             },
             {"role": "user", "content": "Sentence: " + SENTENCE},
         ],
