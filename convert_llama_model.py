@@ -16,3 +16,5 @@ state_dict = torch.load(PATH)
 
 # Save in PyTorch format
 torch.save(state_dict, "pytorch_model.bin")
+
+print("Model saved in PyTorch format.")
