@@ -611,7 +611,7 @@
     },
     {
         "id": "eng_train_track_b_00081",
-        "sentence": "I also wrote down on a piece of paper \"You are fascinating.",
+        "sentence": "I also wrote down on a piece of paper You are fascinating.",
         "emotions": [
             "medium joy"
         ]
@@ -625,7 +625,7 @@
     },
     {
         "id": "eng_train_track_b_00083",
-        "sentence": "\" Nothing, we hear absolutely nothing.",
+        "sentence": "Nothing, we hear absolutely nothing.",
         "emotions": [
             "medium fear",
             "light surprise"
@@ -1343,7 +1343,7 @@
     },
     {
         "id": "eng_train_track_b_00177",
-        "sentence": "\" It was super creepy.",
+        "sentence": "It was super creepy.",
         "emotions": [
             "strong fear",
             "medium surprise"
@@ -2462,7 +2462,7 @@
     },
     {
         "id": "eng_train_track_b_00323",
-        "sentence": "\" I thought she was going to throw her coffee at me.",
+        "sentence": "I thought she was going to throw her coffee at me.",
         "emotions": [
             "light anger",
             "medium fear",
@@ -3710,7 +3710,7 @@
     },
     {
         "id": "eng_train_track_b_00486",
-        "sentence": "\"Yeah, but did you just find that?",
+        "sentence": "Yeah, but did you just find that?",
         "emotions": [
             "light fear",
             "medium surprise"
@@ -4776,7 +4776,7 @@
     },
     {
         "id": "eng_train_track_b_00626",
-        "sentence": "\" As much as i urge for the answer no stranger seems to talk about it.",
+        "sentence": "As much as i urge for the answer no stranger seems to talk about it.",
         "emotions": [
             "light anger",
             "light fear",
@@ -5287,7 +5287,7 @@
     },
     {
         "id": "eng_train_track_b_00692",
-        "sentence": "i asked if anyone else just saw that and right on queue my best friend says \"that hand just reach out of the entertainment center?",
+        "sentence": "i asked if anyone else just saw that and right on queue my best friend says that hand just reach out of the entertainment center?",
         "emotions": [
             "medium fear",
             "strong surprise"
@@ -6066,7 +6066,7 @@
     },
     {
         "id": "eng_train_track_b_00794",
-        "sentence": "\" The cop tells him to have a nice day and walks away.",
+        "sentence": "The cop tells him to have a nice day and walks away.",
         "emotions": [
             "light anger",
             "light joy",
@@ -6443,7 +6443,7 @@
     },
     {
         "id": "eng_train_track_b_00844",
-        "sentence": "\"Jeff what is that?",
+        "sentence": "Jeff what is that?",
         "emotions": [
             "medium fear",
             "medium surprise"
@@ -6710,7 +6710,7 @@
     },
     {
         "id": "eng_train_track_b_00878",
-        "sentence": "What came out of my mouth was: \"Because white reigns supreme.",
+        "sentence": "What came out of my mouth was: Because white reigns supreme.",
         "emotions": [
             "light anger",
             "medium fear",
@@ -6853,7 +6853,7 @@
     },
     {
         "id": "eng_train_track_b_00896",
-        "sentence": "He saw blood and said, \"Mommy!",
+        "sentence": "He saw blood and said, Mommy!",
         "emotions": [
             "strong fear",
             "light sadness",
@@ -6935,7 +6935,7 @@
     },
     {
         "id": "eng_train_track_b_00906",
-        "sentence": "Satan said to him, \"God will do everything in His power to destroy you.",
+        "sentence": "Satan said to him, God will do everything in His power to destroy you.",
         "emotions": [
             "light anger",
             "strong fear",
@@ -7017,7 +7017,7 @@
     },
     {
         "id": "eng_train_track_b_00916",
-        "sentence": "\" She awoke from this odd dream and told her mum to wake up her sister.",
+        "sentence": "She awoke from this odd dream and told her mum to wake up her sister.",
         "emotions": [
             "light fear",
             "light surprise"
@@ -9173,7 +9173,7 @@
     },
     {
         "id": "eng_train_track_b_01196",
-        "sentence": "\" She was slapping at air, screaming.",
+        "sentence": "She was slapping at air, screaming.",
         "emotions": [
             "strong fear",
             "light sadness",
@@ -9767,7 +9767,7 @@
     },
     {
         "id": "eng_train_track_b_01274",
-        "sentence": "Anyway, during a festival miles and miles from home, I hear someone call out to a girl walking by \"Rain!",
+        "sentence": "Anyway, during a festival miles and miles from home, I hear someone call out to a girl walking by Rain!",
         "emotions": [
             "light joy",
             "medium surprise"
@@ -9782,7 +9782,7 @@
     },
     {
         "id": "eng_train_track_b_01276",
-        "sentence": "\"I lost the towel.",
+        "sentence": "I lost the towel.",
         "emotions": [
             "light fear"
         ]
@@ -10593,7 +10593,7 @@
     },
     {
         "id": "eng_train_track_b_01383",
-        "sentence": "As I started running I heard him say again \"I'm going to get you!",
+        "sentence": "As I started running I heard him say again I'm going to get you!",
         "emotions": [
             "strong fear",
             "medium surprise"
@@ -10733,7 +10733,7 @@
     },
     {
         "id": "eng_train_track_b_01401",
-        "sentence": "probably towed by now\".",
+        "sentence": "probably towed by now.",
         "emotions": [
             "light fear"
         ]
@@ -10832,7 +10832,7 @@
     },
     {
         "id": "eng_train_track_b_01414",
-        "sentence": "\" Those little blonde kids!",
+        "sentence": "Those little blonde kids!",
         "emotions": [
             "light surprise"
         ]
@@ -11211,7 +11211,7 @@
     },
     {
         "id": "eng_train_track_b_01464",
-        "sentence": "\" best friends ever since",
+        "sentence": "best friends ever since",
         "emotions": [
             "medium joy"
         ]
@@ -11319,7 +11319,7 @@
     },
     {
         "id": "eng_train_track_b_01478",
-        "sentence": "\"Are you sure, sis?",
+        "sentence": "Are you sure, sis?",
         "emotions": [
             "medium fear",
             "light surprise"
@@ -12999,7 +12999,7 @@
     },
     {
         "id": "eng_train_track_b_01698",
-        "sentence": "\"Perhaps I'll alter the whole thing.",
+        "sentence": "Perhaps I'll alter the whole thing.",
         "emotions": [
             "light joy",
             "light surprise"
@@ -13195,7 +13195,7 @@
     },
     {
         "id": "eng_train_track_b_01724",
-        "sentence": "He fully woke up, sat up and said \"Turn on the light, it's here watching us.",
+        "sentence": "He fully woke up, sat up and said Turn on the light, it's here watching us.",
         "emotions": [
             "strong fear",
             "medium surprise"
@@ -13761,7 +13761,7 @@
     },
     {
         "id": "eng_train_track_b_01797",
-        "sentence": "In my head I just said, \"this is going to end badly.",
+        "sentence": "In my head I just said, this is going to end badly.",
         "emotions": [
             "strong fear",
             "light sadness"
@@ -14851,7 +14851,7 @@
     },
     {
         "id": "eng_train_track_b_01939",
-        "sentence": "\" and turns away, falling back asleep.",
+        "sentence": "and turns away, falling back asleep.",
         "emotions": [
             "light joy",
             "light sadness"
@@ -15643,7 +15643,7 @@
     },
     {
         "id": "eng_train_track_b_02045",
-        "sentence": "\"  best friends ever since",
+        "sentence": "best friends ever since",
         "emotions": [
             "medium joy"
         ]
@@ -16171,7 +16171,7 @@
     },
     {
         "id": "eng_train_track_b_02115",
-        "sentence": "\" We don't have anything that they want, so they told me.",
+        "sentence": "We don't have anything that they want, so they told me.",
         "emotions": [
             "medium fear",
             "light sadness",
@@ -16219,7 +16219,7 @@
     },
     {
         "id": "eng_train_track_b_02121",
-        "sentence": "\" The black family behind me looked mortified.",
+        "sentence": "The black family behind me looked mortified.",
         "emotions": [
             "light fear",
             "light sadness",
@@ -16945,7 +16945,7 @@
     },
     {
         "id": "eng_train_track_b_02216",
-        "sentence": "\"a woman is going to get an abortion.",
+        "sentence": "a woman is going to get an abortion.",
         "emotions": [
             "medium fear",
             "light sadness",
@@ -17070,7 +17070,7 @@
     },
     {
         "id": "eng_train_track_b_02232",
-        "sentence": "\"Liutenant, we see the black patch.",
+        "sentence": "Liutenant, we see the black patch.",
         "emotions": [
             "light fear",
             "light surprise"
@@ -17101,7 +17101,7 @@
     },
     {
         "id": "eng_train_track_b_02236",
-        "sentence": "\" I radioed to Infinity.",
+        "sentence": "I radioed to Infinity.",
         "emotions": [
             "None"
         ]
@@ -17157,7 +17157,7 @@
     },
     {
         "id": "eng_train_track_b_02243",
-        "sentence": "\" I explain the promotion to them and he is quick to decide he wants three.",
+        "sentence": "I explain the promotion to them and he is quick to decide he wants three.",
         "emotions": [
             "light joy",
             "light surprise"
@@ -17165,7 +17165,7 @@
     },
     {
         "id": "eng_train_track_b_02244",
-        "sentence": "\" I figure she probably spent all night hiding in a corner.",
+        "sentence": "I figure she probably spent all night hiding in a corner.",
         "emotions": [
             "medium fear",
             "light sadness"
@@ -17226,7 +17226,7 @@
     },
     {
         "id": "eng_train_track_b_02252",
-        "sentence": "\" staring dead at my ex.",
+        "sentence": "staring dead at my ex.",
         "emotions": [
             "medium anger",
             "light fear",
@@ -17840,7 +17840,7 @@
     },
     {
         "id": "eng_train_track_b_02332",
-        "sentence": "\"You're going to die.",
+        "sentence": "You're going to die.",
         "emotions": [
             "strong fear",
             "light sadness",
@@ -18938,7 +18938,7 @@
     },
     {
         "id": "eng_train_track_b_02475",
-        "sentence": "\"I forget, but I never forgive!",
+        "sentence": "I forget, but I never forgive!",
         "emotions": [
             "strong anger"
         ]
@@ -19412,7 +19412,7 @@
     },
     {
         "id": "eng_train_track_b_02536",
-        "sentence": "Me: \"Negative, you'll never catch me.",
+        "sentence": "Me: Negative, you'll never catch me.",
         "emotions": [
             "light fear",
             "light joy",
@@ -19569,7 +19569,7 @@
     },
     {
         "id": "eng_train_track_b_02557",
-        "sentence": "\"How the hell did you get her down?!",
+        "sentence": "How the hell did you get her down?!",
         "emotions": [
             "medium anger",
             "light fear",
@@ -19610,7 +19610,7 @@
     },
     {
         "id": "eng_train_track_b_02562",
-        "sentence": "\" and burst out laughing.",
+        "sentence": "and burst out laughing.",
         "emotions": [
             "strong joy",
             "light surprise"
@@ -19680,7 +19680,7 @@
     },
     {
         "id": "eng_train_track_b_02571",
-        "sentence": "\" and look in my rear view mirror.",
+        "sentence": "and look in my rear view mirror.",
         "emotions": [
             "light fear"
         ]
@@ -19856,7 +19856,7 @@
     },
     {
         "id": "eng_train_track_b_02595",
-        "sentence": "\"Do you believe in our lord and savior?",
+        "sentence": "Do you believe in our lord and savior?",
         "emotions": [
             "light fear"
         ]
@@ -20082,7 +20082,7 @@
     },
     {
         "id": "eng_train_track_b_02625",
-        "sentence": "\" I'm terrified that they're going to kill her, beat her, rape her, all of the above.",
+        "sentence": "I'm terrified that they're going to kill her, beat her, rape her, all of the above.",
         "emotions": [
             "strong fear",
             "medium sadness"
@@ -20894,7 +20894,7 @@
     },
     {
         "id": "eng_train_track_b_02731",
-        "sentence": "He picked her up and put her in front of a mirror and said : \"Look, look at you!",
+        "sentence": "He picked her up and put her in front of a mirror and said : Look, look at you!",
         "emotions": [
             "light joy",
             "light surprise"

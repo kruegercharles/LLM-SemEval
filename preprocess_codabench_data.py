@@ -125,10 +125,13 @@ def remove_junk(line: str) -> str:
     line = line.replace("nbsp;", "")
     line = line.replace("*", "")
     line = line.replace("''", "")
-    line = line.replace(r"\"", "")
     line = line.replace("{", "")
     line = line.replace("}", "")
     line = line.replace("  ", " ")
+
+    # if there is only one " in the line, remove it
+    if line.count('"') == 1:
+        line = line.replace('"', "")
 
     if line.endswith(":"):
         line = line[:-1]
