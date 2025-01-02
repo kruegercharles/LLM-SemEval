@@ -100,23 +100,6 @@ def load_the_preprocessed_dataset(
 
     dataset: Dataset = Dataset.from_list(data)
 
-    #    tokenized_dataset = DatasetDict.map(
-    #        lambda x: tokenizer(x["sentence"], truncation=True, padding="max_length"),
-    #        batched=True,
-    #    )
-
-    # Split the dataset into training and evaluation sets
-    """   train_test_split: DatasetDict = dataset.train_test_split(test_size=0.1)
-    train_dataset: Dataset = train_test_split["train"]
-    eval_dataset: Dataset = train_test_split["test"]
-
-    assert isinstance(train_dataset, Dataset)
-    assert isinstance(eval_dataset, Dataset)
-
-    train_dataloader:DataLoader = DataLoader()
-    eval_dataloader:DataLoader = DataLoader()
-    """
-
     # Split the dataset into training and evaluation sets
     train_test_split: DatasetDict = dataset.train_test_split(test_size=0.1)
     train_dataset: Dataset = train_test_split["train"]
@@ -139,11 +122,11 @@ def load_the_preprocessed_dataset(
     # print first 10 elements of each dataset
     print(
         "First 10 elements of tokenized train dataset:",
-        tokenized_train_dataset.to_list[:10],
+        tokenized_train_dataset.to_list()[:10],
     )
     print(
         "First 10 elements of tokenized eval dataset:",
-        tokenized_eval_dataset.to_list[:10],
+        tokenized_eval_dataset.to_list()[:10],
     )
 
     train_dataloader = DataLoader(
@@ -202,8 +185,6 @@ def load_the_preprocessed_dataset(
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         return None
-
-
  """
 
 
@@ -211,7 +192,7 @@ def prepare_model_for_PEFT(model: LlamaForCausalLM):
     lora_config = LORA_CONFIG()
     lora_config.r = 8
     lora_config.lora_alpha = 32
-    lora_dropout: float = 0.01
+    lora_config.lora_dropout = 0.05
 
     peft_config = LoraConfig(**asdict(lora_config))
 
@@ -293,11 +274,11 @@ def main():
     )
     print_checkpoint("Dataset loaded")
 
-    exit()
-
     # Step 4: Prepare the model for PEFT
     model = prepare_model_for_PEFT(model)
     print_checkpoint("Model prepared for PEFT")
+
+    exit()
 
     # Step 5: Fine-tune the model
     results = fine_tune_the_model(
