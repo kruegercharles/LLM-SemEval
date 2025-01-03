@@ -33,7 +33,7 @@ def load_model():
     train_config.gradient_accumulation_steps = 4
     train_config.batch_size_training = 1
     train_config.lr = 3e-4
-    train_config.use_fast_kernels = False
+    train_config.use_fast_kernels = True
     train_config.use_fp16 = True
     train_config.context_length = (
         1024 if torch.cuda.get_device_properties(0).total_memory < 16e9 else 2048
@@ -105,8 +105,8 @@ def load_the_preprocessed_dataset(
     train_dataset: Dataset = train_test_split["train"]
     eval_dataset: Dataset = train_test_split["test"]
 
-    def tokenize_function(examples):
-        return tokenizer(examples["sentence"], truncation=True)
+    def tokenize_function(dataset):
+        return tokenizer(dataset["sentence"], truncation=True)
 
     tokenized_train_dataset: Dataset = train_dataset.map(
         tokenize_function, batched=True
