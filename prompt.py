@@ -12,7 +12,7 @@ USE_CHAT = True
 USE_TEXT_GEN = not USE_CHAT
 
 CKPT_DIR = "models/checkpoints/Llama3.1-8B-Instruct/"
-TOKENIZER_PATH = "models/tokenizers/Llama3.1-8B-Instruct/tokenizer.model"
+TOKENIZER_PATH = "models/checkpoints/Llama3.1-8B-Instruct/tokenizer.model"
 
 
 # Llm config:
