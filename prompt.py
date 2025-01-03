@@ -11,6 +11,10 @@ from llama import Dialog, Llama
 USE_CHAT = True
 USE_TEXT_GEN = not USE_CHAT
 
+CKPT_DIR = "models/checkpoints/Llama3.1-8B-Instruct/"
+TOKENIZER_PATH = "models/tokenizers/Llama3.1-8B-Instruct/tokenizer.model"
+
+
 # Llm config:
 TEMPERATURE = 0.6  # Default: 0.6
 TOP_P = 0.9  # Default: 0.9
@@ -28,8 +32,8 @@ SYSTEM_PROMPT = "There are 5 different categories for emotions: Anger, Fear, Joy
 
 
 def text_gen(
-    ckpt_dir: str,
-    tokenizer_path: str,
+    ckpt_dir: str = CKPT_DIR,
+    tokenizer_path: str = TOKENIZER_PATH,
     temperature=TEMPERATURE,
     top_p=TOP_P,
     max_seq_len=MAX_SEQ_LEN,
@@ -62,8 +66,8 @@ def text_gen(
 
 
 def chat(
-    ckpt_dir: str,
-    tokenizer_path: str,
+    ckpt_dir: str = CKPT_DIR,
+    tokenizer_path: str = TOKENIZER_PATH,
     temperature=TEMPERATURE,
     top_p=TOP_P,
     max_seq_len=MAX_SEQ_LEN,

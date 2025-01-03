@@ -21,10 +21,10 @@ def finetune(
     pretrained_model_name_or_path: Path,
     output_directory: Path,
     learning_rate: float = 3e-4,  # 5e-4,
-    epochs: int = 1,  # 5,
+    epochs: int = 5,
     batch_size: int = 32,
     context_length: int = 512,  # 128,
-    cache_dir: Path = "output/",
+    cache_dir: Path = "cache-dir/",
 ):
     print_checkpoint("Start finetuning")
     # remove folder output
@@ -100,7 +100,7 @@ def finetune(
     print_checkpoint("Data collator created")
 
     model = LlamaForCausalLM.from_pretrained(
-        MODEL_PATH,
+        pretrained_model_name_or_path,
         device_map="auto",
         # quantization_config=config,
         use_cache=False,
@@ -125,6 +125,7 @@ def finetune(
 
     args = TrainingArguments(
         output_dir=output_directory,
+        overwrite_output_dir=True,
         per_device_train_batch_size=batch_size,
         num_train_epochs=epochs,
         gradient_accumulation_steps=8,
@@ -134,7 +135,7 @@ def finetune(
         lr_scheduler_type="cosine",
         learning_rate=learning_rate,
         save_steps=5_000,
-        fp16=True,
+        fp16=False,
     )
 
     trainer = Trainer(
@@ -147,7 +148,7 @@ def finetune(
 
     print_checkpoint("Training started")
 
-    print(f"Model size: {model.num_parameters()/1000**2:.1f}M parameters")
+    print(f"Model size: {model.num_parameters()/1000**3:.1f}B parameters")
     trainer.train()
     print_checkpoint("Training finished")
 

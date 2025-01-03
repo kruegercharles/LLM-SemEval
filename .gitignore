@@ -161,3 +161,9 @@ cython_debug/
 
 # Models
 models/checkpoints/Llama3.1-8B-Instruct/*
+
+# Ignore everything in cache-dir except .gitkeep
+cache-dir/*
+!cache-dir/.gitkeep
+
+output/*
