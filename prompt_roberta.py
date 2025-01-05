@@ -1,5 +1,4 @@
 import random  # noqa
-from collections import Counter  # noqa
 
 import torch  # noqa
 from torch import Tensor  # noqa
@@ -35,6 +34,9 @@ PROMPT_EXAMPLES = {
 THRESHOLD = 0.5
 
 
+DEBUG_PRINT_ALL_PROBABILITIES = False
+
+
 random.seed(42)
 torch.manual_seed(42)
 if torch.cuda.is_available():
@@ -62,7 +64,6 @@ def prompt():
         for emotion in EMOTION_LABELS:
             voting_table[emotion] = 0
 
-        # all_results = []
         # FIXME: for now the model just gives deterministically the same output each run, except when i load the model each iteration
 
         for i in range(NUM_ANSWERS):
@@ -101,17 +102,17 @@ def prompt():
             predicted_emotions = [
                 EMOTION_LABELS[j] for j, val in enumerate(predicted_labels) if val == 1
             ]
-            # if not predicted_emotions:
-            # predicted_emotions = ["none"]
 
-            # all_results.append(predicted_emotions)
             for emotion in predicted_emotions:
                 voting_table[emotion] += 1
 
-            print("Probabilities:")
-            for label, prob in zip(EMOTION_LABELS, probabilities.squeeze().tolist()):
-                print(f"  {label}: {prob:.3f}")
-            print(f"==> Predicted Emotion: {predicted_emotions}")
+            if DEBUG_PRINT_ALL_PROBABILITIES:
+                print("Probabilities:")
+                for label, prob in zip(
+                    EMOTION_LABELS, probabilities.squeeze().tolist()
+                ):
+                    print(f"  {label}: {prob:.3f}")
+            print(f"Predicted Emotion: {predicted_emotions}")
             print(" ")
 
         # Go through all results and find the set of emotions that at least NUM_ANSWERS/2 models predicted
@@ -121,20 +122,19 @@ def prompt():
                 final_answer.append(emotion)
                 print(f'Emotion "{emotion}" was predicted by {votes} models.')
 
+        final_answer_text = "==> Final answer:"
+
         if not final_answer:
-            print("Final answer: none")
+            print(final_answer_text, "none")
         else:
-            print(f"Final answer: {final_answer}")
+            print(final_answer_text, final_answer)
 
         """  most_common = Counter(tuple(x) for x in all_results).most_common(1)
         print(f"Most common emotion set: {most_common[0][0]}") """
 
 
 if __name__ == "__main__":
-    print(" ")
-    print("-" * 50)
-
     prompt()
-
+    print(" ")
     print("-" * 50)
     print(" ")
