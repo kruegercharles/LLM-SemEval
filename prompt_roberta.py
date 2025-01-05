@@ -25,24 +25,34 @@ MIN_TEMPERATURE = 0.2
 MAX_TEMPERATURE = 0.8
 
 
+random.seed(42)
+torch.manual_seed(42)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(42)
+
+
+# Load model and tokenizer
+MODEL_NAME = "roberta-base"
+tokenizer = RobertaTokenizer.from_pretrained(MODEL_NAME)
+model = RobertaForSequenceClassification.from_pretrained(
+    MODEL_NAME, num_labels=len(EMOTION_LABELS), cache_dir="cache-dir"
+).to("cuda" if torch.cuda.is_available() else "cpu")
+
+# Set model to evaluation mode to disable dropout
+model.eval()
+
+# Tokenize the input
+inputs = tokenizer(PROMPT, return_tensors="pt", truncation=True, padding=True).to(
+    model.device
+)
+
+
 def main():
     print(" ")
     print("-" * 50)
     print(f"Prompt: {PROMPT}")
 
     all_results = []
-
-    random.seed(42)
-
-    # Load pre-trained model and tokenizer
-    model_name = "roberta-base"
-    tokenizer = RobertaTokenizer.from_pretrained(model_name)
-    model = RobertaForSequenceClassification.from_pretrained(
-        model_name, num_labels=len(EMOTION_LABELS), cache_dir="cache-dir"
-    )
-
-    # Tokenize the input
-    inputs = tokenizer(PROMPT, return_tensors="pt", truncation=True, padding=True)
 
     for i in range(NUM_ANSWERS):
         print("Run:", i + 1)
@@ -77,7 +87,6 @@ def main():
             predicted_class = torch.argmax(probabilities, dim=-1).item()
 
         predicted_emotion = EMOTION_LABELS[predicted_class]
-
         all_results.append(predicted_emotion)
 
         print("Probabilities:")
