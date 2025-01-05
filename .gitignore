@@ -160,7 +160,8 @@ cython_debug/
 #.idea/
 
 # Models
-models/checkpoints/*
+models/*
+!models/.gitkeep
 !models/checkpoints/.gitkeep
 
 # Ignore everything in cache-dir except .gitkeep
