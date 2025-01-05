@@ -1,29 +1,27 @@
 import os
 from pathlib import Path
 
-import torch  # noqa
-import torch.nn as nn  # noqa
+import torch
 from datasets import load_dataset
 from transformers import (
-    RobertaForSequenceClassification,  # noqa
-    RobertaTokenizer,  # noqa
-    Trainer,  # noqa
-    TrainingArguments,  # noqa
+    DataCollatorWithPadding,
+    RobertaForSequenceClassification,
+    RobertaTokenizer,
+    Trainer,
+    TrainingArguments,
 )
 
 # Config
 MODEL_NAME = Path("models/roberta-base/")
 OUTPUT_DIR = Path("output/roberta-semeval")
 DATA_SET_PATH = Path("data/codabench_data/train/eng_a_parsed.json")
-CACHE_DIR = Path(
-    "cache-dir/",
-)
+CACHE_DIR = Path("cache-dir/")
 
 # Hyperparameters
-LEARNING_RATE: float = 3e-4  # 5e-4,
+LEARNING_RATE: float = 3e-4
 EPOCHS: int = 5
 BATCH_SIZE: int = 32
-CONTEXT_LENGTH: int = 512  # 128,
+CONTEXT_LENGTH: int = 512
 
 EMOTION_LABELS = [
     "anger",
@@ -36,7 +34,6 @@ EMOTION_LABELS = [
 
 
 def create_and_clear_folder():
-    # remove folder output
     OUTPUT_BASE_DIR = Path("output/")
 
     def recursive_delete(directory):
@@ -52,11 +49,10 @@ def create_and_clear_folder():
                     os.remove(item_path)
                     print(f"Deleted file: {item_path}")
                 elif os.path.isdir(item_path):
-                    recursive_delete(item_path)  # Recursively delete subdirectories
-                    os.rmdir(item_path)  # Delete the now empty subdirectory
+                    recursive_delete(item_path)
+                    os.rmdir(item_path)
                     print(f"Deleted directory: {item_path}")
 
-            # Check if the directory is now empty (important for the initial call)
             if not os.listdir(directory):
                 os.rmdir(directory)
                 print(f"Deleted directory: {directory}")
@@ -64,9 +60,16 @@ def create_and_clear_folder():
             print(f"Error deleting {directory}: {e}")
 
     recursive_delete(OUTPUT_BASE_DIR)
-
-    # create folder output
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def convert_emotions_to_labels(emotions):
+    # Create a multi-hot encoded vector for the emotions
+    label = torch.zeros(len(EMOTION_LABELS))
+    for emotion in emotions:
+        if emotion in EMOTION_LABELS:
+            label[EMOTION_LABELS.index(emotion)] = 1
+    return label.tolist()
 
 
 def finetune():
@@ -74,93 +77,71 @@ def finetune():
 
     dataset = load_dataset("json", data_files=str(DATA_SET_PATH), cache_dir=CACHE_DIR)
 
-    # Split the dataset into train and test datasets
+    # Split the dataset
     dataset = dataset["train"].train_test_split(test_size=0.2)
     train_dataset = dataset["train"]
     test_dataset = dataset["test"].shard(num_shards=2, index=0)
-    eval_dataset = dataset["test"].shard(num_shards=2, index=1)
+    val_dataset = dataset["test"].shard(num_shards=2, index=1)
 
     tokenizer = RobertaTokenizer.from_pretrained(MODEL_NAME)
 
-    def tokenize_function(examples):
-        return tokenizer(
+    def preprocess_function(examples):
+        # Tokenize the texts
+        tokenized: RobertaTokenizer = tokenizer(
             examples["sentence"],
             padding=True,
             truncation=True,
             max_length=CONTEXT_LENGTH,
+            return_tensors=None,
         )
 
+        # Convert emotions to labels
+        labels = [
+            convert_emotions_to_labels(emotions) for emotions in examples["emotions"]
+        ]
+        tokenized["labels"] = labels
+
+        return tokenized
+
+    # Apply preprocessing to all datasets
     train_dataset = train_dataset.map(
-        tokenize_function, batched=True, batch_size=len(train_dataset)
+        preprocess_function,
+        batched=True,
+        remove_columns=train_dataset.column_names,
     )
     test_dataset = test_dataset.map(
-        tokenize_function, batched=True, batch_size=len(test_dataset)
+        preprocess_function,
+        batched=True,
+        remove_columns=test_dataset.column_names,
     )
-    eval_dataset = eval_dataset.map(
-        tokenize_function, batched=True, batch_size=len(eval_dataset)
+    val_dataset = val_dataset.map(
+        preprocess_function,
+        batched=True,
+        remove_columns=val_dataset.column_names,
     )
 
-    print_checkpoint("Dataset loaded & tokenized")
+    print_checkpoint("Dataset loaded & preprocessed")
 
-    # set format
-    train_dataset.set_format("torch", columns=["input_ids", "sentence", "emotions"])
-    test_dataset.set_format("torch", columns=["input_ids", "sentence", "emotions"])
-    eval_dataset.set_format("torch", columns=["input_ids", "sentence", "emotions"])
-    print("train_dataset:", train_dataset)
-    print("test_dataset:", test_dataset)
-    print("val_dataset:", eval_dataset)
+    # Set format for PyTorch
+    train_dataset.set_format(
+        type="torch", columns=["input_ids", "attention_mask", "labels"]
+    )
+    test_dataset.set_format(
+        type="torch", columns=["input_ids", "attention_mask", "labels"]
+    )
+    val_dataset.set_format(
+        type="torch", columns=["input_ids", "attention_mask", "labels"]
+    )
+
+    data_collator = DataCollatorWithPadding(
+        tokenizer=tokenizer, padding=True, return_tensors="pt"
+    )
 
     model = RobertaForSequenceClassification.from_pretrained(
-        MODEL_NAME, num_labels=len(EMOTION_LABELS), cache_dir="cache-dir/"
+        MODEL_NAME,
+        num_labels=len(EMOTION_LABELS),
+        cache_dir="cache-dir/",
     ).to("cuda" if torch.cuda.is_available() else "cpu")
-
-    """  dataset_list = []
-    for data in dataset["train"]:
-        emotions = str(data["emotions"])
-        emotions = emotions.replace("[", "")
-        emotions = emotions.replace("]", "")
-        emotions = emotions.replace("'", "")
-
-        formatted_data = (
-            f"USER: Sentence: {data['sentence']}\nSYSTEM: Emotions: {emotions}"
-        )
-        # FIXME: das ist bullshit
-
-        dataset_list.append(formatted_data)
-
-    print("\nExample data:")
-    print(dataset_list[0])
-    print(dataset_list[1])
-    print(dataset_list[2])
-    print_checkpoint("Dataset loaded")
-
-    tokenizer = RobertaTokenizer.from_pretrained(MODEL_NAME)
-
-    print_checkpoint("Tokenizer loaded")
-
-    train_dataset = tokenizer(
-        dataset_list,
-        add_special_tokens=True,
-        truncation=True,
-        max_length=context_length,
-    )["input_ids"]
-    print("\nExample tokenized data:")
-    print(train_dataset[0])
-    print(train_dataset[1])
-    print(train_dataset[2])
-
-    print_checkpoint("Dataset tokenized")
-
-    data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
-
-    print_checkpoint("Data collator created")
-
-    model = RobertaForSequenceClassification.from_pretrained(
-        MODEL_NAME, num_labels=len(EMOTION_LABELS), cache_dir="cache-dir/"
-    ).to("cuda" if torch.cuda.is_available() else "cpu")
-
-    print_checkpoint("Model loaded")
- """
 
     args = TrainingArguments(
         output_dir=OUTPUT_DIR,
@@ -168,25 +149,26 @@ def finetune():
         per_device_train_batch_size=BATCH_SIZE,
         num_train_epochs=EPOCHS,
         logging_dir=str(OUTPUT_DIR) + "/logs",
+        logging_steps=10,
+        logging_strategy="steps",
         gradient_accumulation_steps=8,
-        logging_steps=50,
         weight_decay=0.01,
         warmup_steps=500,
         save_strategy="epoch",
         lr_scheduler_type="cosine",
         learning_rate=LEARNING_RATE,
-        evaluation_strategy="epoch",
+        eval_strategy="epoch",
     )
 
     trainer = Trainer(
         args=args,
         model=model,
         train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
+        eval_dataset=val_dataset,
+        data_collator=data_collator,
     )
 
     print_checkpoint("Training started")
-
     trainer.train()
     print_checkpoint("Training finished")
 
@@ -198,12 +180,9 @@ def finetune():
 
 
 def print_checkpoint(message: str):
-    # just a helper function to make the output more readable when reaching a checkpoint
-    print(" ")
-    print("=" * 50)
-    print("Checkpoint", message)
-    print("=" * 50)
-    print(" ")
+    print("\n" + "=" * 50)
+    print("Checkpoint:", message)
+    print("=" * 50 + "\n")
 
 
 if __name__ == "__main__":
