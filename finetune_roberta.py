@@ -123,11 +123,6 @@ def finetune():
     print("Features:", train_dataset.features)
     # Output: Features: {'input_ids': Sequence(feature=Value(dtype='int32', id=None), length=-1, id=None), 'attention_mask': Sequence(feature=Value(dtype='int8', id=None), length=-1, id=None), 'labels': Sequence(feature=Value(dtype='float64', id=None), length=-1, id=None)}
 
-    num_labels = dataset["train"].features["label"].num_classes
-    class_names = dataset["train"].features["label"].names
-    print(f"Number of labels: {num_labels}")
-    print(f"The labels: {class_names}")
-
     print_checkpoint("Dataset loaded & preprocessed")
 
     # Set format for PyTorch
