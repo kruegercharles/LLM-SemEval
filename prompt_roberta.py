@@ -6,7 +6,6 @@ import torch  # noqa
 from torch import Tensor  # noqa
 from transformers import (  # noqa
     RobertaForSequenceClassification,
-    RobertaModel,
     RobertaTokenizer,
 )
 
@@ -22,13 +21,7 @@ EMOTION_LABELS = [
 NUM_ANSWERS = 3
 PROMPT = "This is a very exciting and happy moment!"
 
-USE_TOP_K = True
-K = 3  # top-k sampling
-
-USE_TEMPERATURE = False
-MIN_TEMPERATURE = 0.2
-MAX_TEMPERATURE = 0.8
-
+# Define threshold for binary classification
 THRESHOLD = 0.5
 
 
@@ -68,36 +61,13 @@ def main():
         with torch.no_grad():
             outputs: Tensor = model(**inputs)
 
-        # add a random temperature
-        """   if USE_TEMPERATURE:
-            temperature = random.uniform(MIN_TEMPERATURE, MAX_TEMPERATURE)
-            logits = outputs.logits / temperature
-            print(f"Temperature: {temperature:.2f}")
-        else:
-            logits = outputs.logits """
-
         # Get predicted probabilities
         probabilities = torch.sigmoid(outputs.logits)
 
-        # add top-k sampling
-        """  if USE_TOP_K:
-            top_k_probs, top_k_indices = torch.topk(probabilities, K)
-            sampled_index = torch.multinomial(top_k_probs, num_samples=1).item()
-            predicted_class = top_k_indices[0][sampled_index].item()
-            print("Top-K sampling:")
-            for prob, idx in zip(
-                top_k_probs.squeeze().tolist(), top_k_indices.squeeze().tolist()
-            ):
-                print(f"  {EMOTION_LABELS[idx]}: {prob:.3f}")
-        else:
-            # Get predicted class (emotion)
-            predicted_class = torch.argmax(probabilities, dim=-1).item() """
-
-        # predicted_emotion = EMOTION_LABELS[predicted_class]
-        # all_results.append(predicted_emotion)
-
+        # Apply threshold
         predicted_labels = (probabilities > THRESHOLD).int().squeeze().tolist()
 
+        # Get predicted emotions
         predicted_emotions = [
             EMOTION_LABELS[j] for j, val in enumerate(predicted_labels) if val == 1
         ]
