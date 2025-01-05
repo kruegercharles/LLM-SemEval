@@ -81,7 +81,7 @@ def main():
                     if int(line[6]) == 3:
                         emotions.append("strong surprise")
                     if len(emotions) == 0:
-                        emotions.append("None")
+                        emotions.append("none")
                 else:
                     if int(line[2]) >= 1:
                         emotions.append("anger")
@@ -94,7 +94,7 @@ def main():
                     if int(line[6]) >= 1:
                         emotions.append("surprise")
                     if len(emotions) == 0:
-                        emotions.append("None")
+                        emotions.append("none")
 
                 dataset.append({"id": id, "sentence": sentence, "emotions": emotions})
 
