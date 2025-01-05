@@ -1,6 +1,5 @@
 import random  # noqa
 from collections import Counter  # noqa
-from statistics import mode  # noqa
 
 import torch  # noqa
 from torch import Tensor  # noqa
@@ -54,6 +53,7 @@ def main():
 
     all_results = []
 
+    # FIXME: for now the model just gives deterministically the same output each run
     for i in range(NUM_ANSWERS):
         print("Run:", i + 1)
 
@@ -82,8 +82,6 @@ def main():
         print(f"==> Predicted Emotion: {predicted_emotions}")
         print(" ")
 
-    # most_common = mode(all_results)
-    # print(f"Most common emotion: {most_common}")
     most_common = Counter(tuple(x) for x in all_results).most_common(1)
     print(f"Most common emotion set: {most_common[0][0]}")
     print("-" * 50)
