@@ -7,6 +7,7 @@ from transformers import (  # noqa
     RobertaForSequenceClassification,
     RobertaTokenizer,
 )
+import os  # noqa
 
 # Define emotion labels
 EMOTION_LABELS = [
@@ -30,11 +31,14 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed_all(42)
 
 
-# Load model and tokenizer
 MODEL_NAME = "models/roberta-base/"
+if not os.path.exists(MODEL_NAME):
+    raise FileNotFoundError(f"Model {MODEL_NAME} not found.")
+
+# Load model and tokenizer
 tokenizer = RobertaTokenizer.from_pretrained(MODEL_NAME)
 model = RobertaForSequenceClassification.from_pretrained(
-    MODEL_NAME, num_labels=len(EMOTION_LABELS), cache_dir="cache-dir"
+    MODEL_NAME, num_labels=len(EMOTION_LABELS), cache_dir="cache-dir/"
 ).to("cuda" if torch.cuda.is_available() else "cpu")
 
 # Set model to evaluation mode to disable dropout
@@ -46,11 +50,7 @@ inputs = tokenizer(PROMPT, return_tensors="pt", truncation=True, padding=True).t
 )
 
 
-def main():
-    print(" ")
-    print("-" * 50)
-    print(f"Prompt: {PROMPT}")
-
+def prompt():
     all_results = []
 
     # FIXME: for now the model just gives deterministically the same output each run
@@ -84,9 +84,14 @@ def main():
 
     most_common = Counter(tuple(x) for x in all_results).most_common(1)
     print(f"Most common emotion set: {most_common[0][0]}")
-    print("-" * 50)
-    print(" ")
 
 
 if __name__ == "__main__":
-    main()
+    print(" ")
+    print("-" * 50)
+    print(f"Prompt: {PROMPT}")
+
+    prompt()
+
+    print("-" * 50)
+    print(" ")
