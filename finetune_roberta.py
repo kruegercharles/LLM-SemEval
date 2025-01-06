@@ -19,7 +19,7 @@ CACHE_DIR = Path("cache-dir/")
 
 # Hyperparameters
 LEARNING_RATE: float = 3e-4
-EPOCHS: int = 5
+EPOCHS: int = 15
 BATCH_SIZE: int = 32
 CONTEXT_LENGTH: int = 512
 
@@ -145,19 +145,24 @@ def finetune():
         num_labels=len(EMOTION_LABELS),
         cache_dir="cache-dir/",
     ).to("cuda" if torch.cuda.is_available() else "cpu")
+    print("Cuda is available:", torch.cuda.is_available())
+    assert torch.cuda.is_available()
 
     args = TrainingArguments(
         output_dir=OUTPUT_DIR,
         overwrite_output_dir=True,
         per_device_train_batch_size=BATCH_SIZE,
         num_train_epochs=EPOCHS,
+        log_level="info",
         logging_dir=str(OUTPUT_DIR) + "/logs",
         logging_steps=10,
         logging_strategy="steps",
         gradient_accumulation_steps=8,
         weight_decay=0.01,
         warmup_steps=500,
-        save_strategy="epoch",
+        save_strategy="best",
+        save_total_limit=1,  # only store the best model
+        metric_for_best_model="eval_loss",  # TODO: change?
         lr_scheduler_type="cosine",
         learning_rate=LEARNING_RATE,
         eval_strategy="epoch",

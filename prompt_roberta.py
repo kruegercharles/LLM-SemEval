@@ -42,7 +42,7 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed_all(42)
 
 
-# MODEL_NAME = "models/roberta-base/"
+# MODEL_PATH = "models/roberta-base/"
 MODEL_PATH = "output/roberta-semeval/"
 TOKENIZER_PATH = "models/roberta-base/"
 
@@ -76,7 +76,6 @@ def prompt():
         print(" ")
         print("-" * 50)
         print(f"Prompt: {prompt}")
-        print(f"Expected answer: {answer}")
         print(" ")
 
         voting_table = {}
@@ -129,12 +128,25 @@ def prompt():
                 final_answer.append(emotion)
 
         print("Voting table:", voting_table)
-        final_answer_text = "==> Final answer:"
+        print("\nExpected answer:", answer)
+
+        final_answer_text = "Final answer:"
 
         if not final_answer:
             print(final_answer_text, "none")
         else:
             print(final_answer_text, final_answer)
+
+        # compare final answer with expected answer
+        if set(final_answer) == set(answer):
+            print("Correct!")
+        else:
+            # show how many emotions are correct
+            correct_emotions = set(final_answer) & set(answer)
+            print(
+                "Correct emotions:",
+                str(len(correct_emotions) / len(answer) * 100) + "%",
+            )
 
 
 if __name__ == "__main__":
