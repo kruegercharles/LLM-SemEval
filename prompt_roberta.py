@@ -19,7 +19,7 @@ EMOTION_LABELS = [
 
 NUM_ANSWERS = 5
 PROMPT_EXAMPLES = {
-    "This is a very exciting and happy moment!": ["anger"],
+    "My pride hurt worse than my leg did.": ["anger", "sadness"],
     "Now my parents live in the foothills, and the college is in a large valley.": [
         "none"
     ],
@@ -35,7 +35,6 @@ THRESHOLD = 0.5
 
 
 DEBUG_PRINT_ALL_PROBABILITIES = False
-
 
 random.seed(42)
 torch.manual_seed(42)
@@ -53,6 +52,26 @@ if not os.path.exists(MODEL_PATH):
 
 
 def prompt():
+    models = []
+
+    for i in range(NUM_ANSWERS):
+        # Load model and tokenizer
+        tokenizer = RobertaTokenizer.from_pretrained(
+            TOKENIZER_PATH, cache_dir="cache-dir/"
+        )
+        model = RobertaForSequenceClassification.from_pretrained(
+            MODEL_PATH,
+            num_labels=len(EMOTION_LABELS),
+            cache_dir="cache-dir/",
+            ignore_mismatched_sizes=True,
+        ).to("cuda" if torch.cuda.is_available() else "cpu")
+        # TODO: instead of always loading the same model, load different models each iteration
+
+        # Set model to evaluation mode to disable dropout
+        model.eval()
+
+        models.append((model, tokenizer))
+
     for prompt, answer in PROMPT_EXAMPLES.items():
         print(" ")
         print("-" * 50)
@@ -67,26 +86,14 @@ def prompt():
         # FIXME: for now the model just gives deterministically the same output each run, except when i load the model each iteration
 
         for i in range(NUM_ANSWERS):
-            # Load model and tokenizer
-            tokenizer = RobertaTokenizer.from_pretrained(
-                TOKENIZER_PATH, cache_dir="cache-dir/"
-            )
-            model = RobertaForSequenceClassification.from_pretrained(
-                MODEL_PATH,
-                num_labels=len(EMOTION_LABELS),
-                cache_dir="cache-dir/",
-                ignore_mismatched_sizes=True,
-            ).to("cuda" if torch.cuda.is_available() else "cpu")
+            print("Run:", i + 1)
 
-            # Set model to evaluation mode to disable dropout
-            model.eval()
+            model, tokenizer = models[i]
 
             # Tokenize the input
             inputs = tokenizer(
                 prompt, return_tensors="pt", truncation=True, padding=True
             ).to(model.device)
-
-            print("Run:", i + 1)
 
             # Perform inference
             with torch.no_grad():
@@ -120,17 +127,14 @@ def prompt():
         for emotion, votes in voting_table.items():
             if votes >= NUM_ANSWERS / 2:
                 final_answer.append(emotion)
-                print(f'Emotion "{emotion}" was predicted by {votes} models.')
 
+        print("Voting table:", voting_table)
         final_answer_text = "==> Final answer:"
 
         if not final_answer:
             print(final_answer_text, "none")
         else:
             print(final_answer_text, final_answer)
-
-        """  most_common = Counter(tuple(x) for x in all_results).most_common(1)
-        print(f"Most common emotion set: {most_common[0][0]}") """
 
 
 if __name__ == "__main__":
