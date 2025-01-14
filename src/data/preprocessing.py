@@ -1,14 +1,15 @@
 from datasets import load_dataset, Dataset, concatenate_datasets, Features, Value, Sequence, ClassLabel, load_from_disk
 import pandas as pd
 import re
+import os
 
 DATASET_IDS = {
     'off' : [
-        '/Users/eliaruhle/Documents/LLM-SemEval/data/codabench_data/train/eng_a.csv'
+        os.path.join(os.path.dirname(__file__), '../../data/codabench_data/train/eng_a.csv')
     ],
     'on' : [
-        #'SkyWater21/lt_go_emotions',
-        #'SkyWater21/ru_emotions'
+        'SkyWater21/lt_go_emotions',
+        'SkyWater21/ru_emotions'
     ]
 }
 
@@ -51,7 +52,7 @@ def retrieve_datasets():
                 dsets.append(Dataset.from_dict({'text' : ds.keys(), 'labels' : ds.values()}, features=features))
         elif dset_key == 'on':
             for on_dset in DATASET_IDS['on']:
-                print(f"geht rein: {on_dset}")
+                print(f"Now processing dataset: {on_dset}")
                 dsets.append(retrieve_online_data(on_dset))
     return concatenate_datasets(dsets)
 
@@ -145,13 +146,3 @@ def one_hot_encoding(dataset : Dataset, num_classes : int):
     dataset = dataset.map(lambda x, idx: {**x, 'labels': one_hot_encoded_labels[idx]}, with_indices=True)
 
     return dataset
-
-
-if __name__ == '__main__':
-    data = one_hot_encoding(retrieve_datasets(), 7)
-    
-    print(data[100])
-    print(data[1000])
-    print(data[2000])
-
-    data.save_to_disk('/Users/eliaruhle/Documents/LLM-SemEval/data/codabench_data/train/combined')

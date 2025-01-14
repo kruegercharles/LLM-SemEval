@@ -1,27 +1,35 @@
 import torch 
-from torch.utils.data import DataLoader, random_split
 import torch.nn as nn 
 import torch.optim as optim 
-import matplotlib.pyplot as plt
+import hydra
+import os
+from torch.utils.data import DataLoader, random_split
 from transformers import RobertaTokenizer, get_scheduler, DataCollatorWithPadding, TrainingArguments, Trainer
 from models.lm_classifier import RobertaMultiLabelClassification
 from datasets import load_from_disk
+from data.preprocessing import one_hot_encoding, retrieve_datasets
+from omegaconf import DictConfig
+from misc.misc import search_available_devices, plot_losses, statistics_to_csv
 
 def tokenize(data, tokenizer):
+    # It's possible to adjust max_length or use dynamic patterns -> might be memory efficient since we rarely to never have 512 (or more) tokens per sentence
     return tokenizer(data['text'], padding='max_length', truncation=True, max_length=512)
 
-def prepare_data(dset_id : str, tokenizer):
-    data = load_from_disk(dset_id)
+def prepare_data(dset_id : str, tokenizer, num_labels):
+    if os.path.exists(dset_id):
+        # load the data from the local disk (precompiled)
+        data = load_from_disk(dset_id)
+    else:
+        data = one_hot_encoding(retrieve_datasets(), num_labels)
+        data.save_to_disk(os.path.join(os.path.dirname(__file__), f'../data/codabench_data/train/combined'))
 
     tokenized_data = data.map(lambda x: tokenize(x, tokenizer), batched=True)
-    # remove text column to improve memory efficiency since tokenizer gives back input_ids and attention mask
-    tokenized_data = tokenized_data.remove_columns(['text'])
     # rename 'labels' to 'label' to verify coherence to tokenizer naming scheme 
     tokenized_data = tokenized_data.rename_column('labels', 'label')
     tokenized_data.set_format('torch')
 
     # for training just make a train-test split
-    train_size, val_size, test_size = int(0.8 * len(tokenized_data)), int(0.1 * len(tokenized_data)), int(0.1 * len(tokenized_data))
+    train_size, val_size, test_size = int(0.8 * len(tokenized_data)), int(0.2 * len(tokenized_data)), int(0.0 * len(tokenized_data))
     if len(tokenized_data) != train_size+val_size+test_size:
         train_size += len(tokenized_data) - (train_size+test_size+val_size)
     print(f"len dset: {len(tokenized_data)}")
@@ -29,20 +37,44 @@ def prepare_data(dset_id : str, tokenizer):
 
     return train_data, val_data, test_data
 
-def train(model, train_loader, val_loader, optimizer, scheduler, criterion, num_epochs):
+@hydra.main(config_path='../configs', config_name='train_roberta')
+def train(cfg: DictConfig):
+
+    # search for available devices
+    device = search_available_devices()
+    print(f'*** Found the following device: {device}. Start configuting training.')
+    # define used tokenizer
+    tokenizer = RobertaTokenizer.from_pretrained(cfg.model)
+    # retrieve datasets for training and validation
+    train_dataset, val_dataset, test_dataset = prepare_data(os.path.join(os.path.dirname(__file__), cfg.data), tokenizer, cfg.num_labels)
+    # define model 
+    model = RobertaMultiLabelClassification(cfg.model, cfg.num_labels).to(device=device)
+    # define optimizer
+    optimizer = optim.AdamW(model.parameters(), lr=cfg.lr)
+    # get a scheduler for learning rate adjustement
+    scheduler = get_scheduler(cfg.scheduler, optimizer=optimizer, num_warmup_steps=cfg.warmup_steps, num_training_steps=len(train_dataset))
+    # define a loss function (BCEWithLogitsLoss for multi-label classification)
+    criterion = nn.BCEWithLogitsLoss().to(device=device)
+    # get data-collator to prepare torch dataloaders -> optional
+    # data_collator = DataCollatorWithPadding(tokenizer=tokenizer, return_tensors=device)
+
+    # get train and validation Data Loader
+    train_loader = DataLoader(train_dataset, batch_size=cfg.batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=cfg.batch_size)
+
+    # define accumulators for loss after each period
     train_losses, val_losses = list(), list()
 
-    for epoch in range(num_epochs):
+    for epoch in range(cfg.epochs):
+        print(f'Start Training Epoch {epoch+1}.')
         model.train()
         total_train_loss = 0.0 
 
         for batch in train_loader:
-            input_ids, attention_mask, labels = batch['input_ids'], batch['attention_mask'], batch['label']
+            input_ids, attention_mask, labels = batch['input_ids'].to(device), batch['attention_mask'].to(device), batch['label'].to(device)
             optimizer.zero_grad()
             outputs = model(input_ids=input_ids, attention_mask=attention_mask)
-            print(f'Outputs: {outputs}, Labels: {labels}')
             loss = criterion(outputs, labels.float())
-            print(f'Loss: {loss}')
             loss.backward()
             optimizer.step()
             scheduler.step()
@@ -50,54 +82,38 @@ def train(model, train_loader, val_loader, optimizer, scheduler, criterion, num_
 
         train_losses.append(total_train_loss / len(train_loader))
 
+        # save model checkpoint:
+        checkpoint = {
+            'epoch' : epoch,
+            'model_state_dict' : model.state_dict(),
+            'optimizer_state_dict' : optimizer.state_dict(),
+            'loss' : total_train_loss
+        }
+
+        torch.save(checkpoint, os.path.join(os.path.dirname(__file__), f'../outputs/models/roberta_epoch_{epoch}.pth'))
+
         # Validation step
         model.eval()
         total_val_loss = 0
         with torch.no_grad():
+            print(f'Start Validation Epoch {epoch+1}.')
             for batch in val_loader:
                 input_ids, attention_mask, labels = batch['input_ids'], batch['attention_mask'], batch['label']
                 outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+                if epoch == cfg.epochs:
+                    print(f'Model Prediction: {torch.where(nn.Sigmoid(outputs) >=0.5, torch.tensor(1), torch.tensor(0))}')
+                    print(f'Ground Truth: {labels}')
+                    text = batch['text']
+                    print(f'For the given texts: {text}')
                 loss = criterion(outputs, labels.float())
                 total_val_loss += loss.item()
 
         val_losses.append(total_val_loss / len(val_loader))
-        print(f"Epoch {epoch+1}: Train Loss = {train_losses[-1]:.4f}, Val Loss = {val_losses[-1]:.4f}")
+        print(f"Epoch {epoch+1}: Train Loss = {train_losses[-1]:.4f}, Validation Loss = {val_losses[-1]:.4f}")
 
-        return train_losses, val_losses
+    statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/train_final.csv'), train_losses)
+    statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/validation_final.csv'), val_losses)
     
-def initialize_weights_xavier(layer):
-    if isinstance(layer, nn.Linear):
-        nn.init.xavier_uniform_(layer.weight)
-        if layer.bias is not None:
-            nn.init.zeros_(layer.bias)
-
-def plot_losses(train_losses, val_losses):
-    plt.plot(train_losses, label='Train Loss')
-    plt.plot(val_losses, label='Validation Loss')
-    plt.xlabel('Epochs')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.title('Training and Validation Loss')
-    plt.show()
     
 if __name__ == '__main__':
-    device = 'cpu'
-    tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
-    
-    train_dataset, val_dataset, test_dataset = prepare_data('/Users/eliaruhle/Documents/LLM-SemEval/data/codabench_data/train/combined', tokenizer)
-
-    model = RobertaMultiLabelClassification('roberta-base', num_labels=7).to(device=device)
-    optimizer = optim.AdamW(model.parameters(), lr=1e-3)
-    scheduler = get_scheduler("cosine", optimizer=optimizer, num_warmup_steps=1000, num_training_steps=len(train_dataset))
-    criterion = nn.BCEWithLogitsLoss().to(device)
-
-    data_collator = DataCollatorWithPadding(tokenizer=tokenizer, return_tensors=device)
-
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=32)
-
-    num_epochs = 2
-    print("Starting Training")
-    train_losses, val_losses = train(model, train_loader, val_loader, optimizer, scheduler, criterion, num_epochs)
-
-    plot_losses(train_losses, val_losses)
+    train()
