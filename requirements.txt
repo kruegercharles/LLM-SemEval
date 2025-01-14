@@ -1,6 +1,6 @@
 torch
 datasets
-transfomers
+transformers
 pandas 
 matplotlib
 hydra-core
