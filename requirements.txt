@@ -2,6 +2,6 @@ torch
 datasets
 transfomers
 pandas 
-re
 matplotlib
-warnings
+hydra-core
+omegaconf

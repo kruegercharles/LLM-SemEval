@@ -12,3 +12,5 @@
 source /data/walrus/ws/elru535b-llm_emotion/bin/activate
 
 python3 train.py
+
+deactivate
