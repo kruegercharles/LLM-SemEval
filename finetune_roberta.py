@@ -1,3 +1,5 @@
+import json
+import math
 import os
 from pathlib import Path
 
@@ -35,11 +37,6 @@ EMOTION_LABELS = [
     "none",
 ]
 
-best_accuracy = 0.0
-best_accuracy_epoch = 0
-best_f1 = 0.0
-best_f1_epoch = 0
-
 tokenizer = RobertaTokenizer.from_pretrained(MODEL_NAME, max_length=CONTEXT_LENGTH)
 
 
@@ -74,29 +71,47 @@ def create_and_clear_folder():
 
 
 def compute_metrics(eval_pred):
-    global best_accuracy, best_f1, best_accuracy_epoch, best_f1_epoch
-
     logits, labels = eval_pred
     # logits.to(device)
     predictions = (torch.sigmoid(torch.tensor(logits)) > 0.5).int()
     accuracy = accuracy_score(labels, predictions.numpy())
     f1 = f1_score(labels, predictions.numpy(), average="macro", zero_division="warn")
-
-    if f1 > best_f1:
-        best_f1 = f1
-        best_f1_epoch = eval_pred["epoch"]
-
-    if accuracy > best_accuracy:
-        best_accuracy = accuracy
-        best_accuracy_epoch = eval_pred["epoch"]
-
     return {"accuracy": accuracy, "f1": f1}
 
 
-def plot_metrics(trainer: Trainer):
+def evaluate_metrics(trainer: Trainer):
     train_logs = trainer.state.log_history
+
+    # save logs to file
+    with open(str(OUTPUT_DIR) + "/logs.json", "w") as f:
+        f.write(json.dumps(train_logs, indent=4))
+
+    best_eval_loss = math.inf
+    best_eval_loss_epoch = 0
+    best_eval_accuracy = 0.0
+    best_eval_accuracy_epoch = 0
+    best_eval_f1 = 0.0
+    best_eval_f1_epoch = 0
+
     for log in train_logs:
-        print("Training log:", log)
+        if "eval_loss" in log and log["eval_loss"] < best_eval_loss:
+            best_eval_loss = log["eval_loss"]
+            best_eval_loss_epoch = log["epoch"]
+        if "eval_accuracy" in log and log["eval_accuracy"] > best_eval_accuracy:
+            best_eval_accuracy = log["eval_accuracy"]
+            best_eval_accuracy_epoch = log["epoch"]
+        if "eval_f1" in log and log["eval_f1"] > best_eval_f1:
+            best_eval_f1 = log["eval_f1"]
+            best_eval_f1_epoch = log["epoch"]
+
+    print("\nBest evaluation loss:", best_eval_loss, "at epoch", best_eval_loss_epoch)
+    print(
+        "Best evaluation accuracy:",
+        best_eval_accuracy,
+        "at epoch",
+        best_eval_accuracy_epoch,
+    )
+    print("Best evaluation f1:", best_eval_f1, "at epoch", best_eval_f1_epoch)
 
     # Separate training and evaluation logs
     training_logs = [log for log in train_logs if "loss" in log]
@@ -110,6 +125,8 @@ def plot_metrics(trainer: Trainer):
     eval_epochs = [log["epoch"] for log in eval_logs]
     eval_accuracies = [log["eval_accuracy"] for log in eval_logs]
     eval_f1s = [log["eval_f1"] for log in eval_logs]
+
+    eval_loss = [log["eval_loss"] for log in eval_logs]
 
     # Create the plot
     plt.figure(figsize=(15, 6))
@@ -130,6 +147,12 @@ def plot_metrics(trainer: Trainer):
             eval_f1s,
             label="Validation F1 Score (Macro)",
             color="red",
+        )
+        plt.plot(
+            eval_epochs,
+            eval_loss,
+            label="Validation Loss",
+            color="orange",
         )
 
     plt.xlabel("Epochs")
@@ -236,7 +259,7 @@ def finetune():
     trainer = Trainer(
         args=args,
         model=model,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         train_dataset=train_dataset,
         eval_dataset=val_dataset,
         compute_metrics=compute_metrics,
@@ -249,10 +272,7 @@ def finetune():
     trainer.save_model(str(OUTPUT_DIR))
     print_checkpoint("Model saved")
 
-    plot_metrics(trainer)
-
-    print("\nBest accuracy:", best_accuracy)
-    print("Best f1:", best_f1)
+    evaluate_metrics(trainer)
 
     # trainer.evaluate()
     # print_checkpoint("Evaluation finished")
