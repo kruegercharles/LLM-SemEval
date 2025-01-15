@@ -1,12 +1,12 @@
+import os  # noqa
 import random  # noqa
 
 import torch  # noqa
 from torch import Tensor  # noqa
-from transformers import (  # noqa
-    RobertaForSequenceClassification,
+from transformers import (
+    RobertaForSequenceClassification,  # noqa
     RobertaTokenizer,
 )
-import os  # noqa
 
 # Define emotion labels
 EMOTION_LABELS = [
@@ -15,6 +15,7 @@ EMOTION_LABELS = [
     "joy",
     "sadness",
     "surprise",
+    "disgust",
 ]
 
 NUM_ANSWERS = 5
