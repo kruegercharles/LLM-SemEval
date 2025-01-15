@@ -49,8 +49,8 @@ def remove_junk(line: str) -> str:
         line = re.sub(r"@\S+", "", line)
 
     # remove still like \ud83d or \ude0d or similar
-    while re.search(r"\\u\S+", line):
-        line = re.sub(r"\\u\S+", "", line)
+    # while re.search(r"\\u\S+", line):
+    # line = re.sub(r"\\u\S+", "", line)
 
     # remove all words that start with \
     while re.search(r"\\\S+", line):
@@ -61,8 +61,7 @@ def remove_junk(line: str) -> str:
         line = re.sub(r"\\r", "", line)
 
     # remove all the times several spaces are together
-    while re.search(r"\s+", line):
-        line = re.sub(r"\s+", " ", line)
+    line = re.sub(r"\s+", " ", line)
 
     # if there is only one " in the line, remove it
     if line.count('"') == 1:
@@ -83,20 +82,26 @@ def main():
     id = 1
 
     for path in paths:
+        print("Start with path:", path)
         data = pd.read_parquet(path)
 
         # There are 4 columns: id, text, label, label_text
         # Iterate over the rows and find every different label_text
-        emotions = set()
-        for _, row in data.iterrows():
-            emotions.add(row["label_text"])
+        # emotions = set()
+        # for _, row in data.iterrows():
+        # emotions.add(row["label_text"])
 
-        print("Emotions found:", emotions)
+        # print("Emotions found:", emotions)
 
-        print("Original length of test data:", len(data))
+        rows = len(data)
+
+        print("Original length of test data:", rows)
 
         # Go through every row and create a dictionary
-        for _, row in data.iterrows():
+        for index, row in data.iterrows():
+            if index % 10000 == 0:
+                print("Processed", index, "/", rows, "rows")
+
             emotion_found = [row["label_text"]]
             if emotion_found in EMOTION_LABELS:
                 emotion = emotion_found
@@ -121,11 +126,11 @@ def main():
             all_data.append(data)
             id += 1
 
-    print("Length of all data:", len(all_data))
+    print("\nLength of all data:", len(all_data), "\n")
 
     # Save the data to a json file
-    with open("data/Emotions_Data/parsed_data.json", "w") as f:
-        json.dump(all_data, f, indent=4)
+    with open("data/Emotions_Data/parsed_data.json", "w", encoding="utf-8") as f:
+        json.dump(all_data, f, indent=4, ensure_ascii=False)
 
 
 if __name__ == "__main__":
