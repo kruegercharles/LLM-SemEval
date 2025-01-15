@@ -6,7 +6,6 @@ import torch
 from datasets import load_dataset
 from sklearn.metrics import accuracy_score, f1_score  # noqa
 from transformers import (
-    DataCollatorWithPadding,
     RobertaForSequenceClassification,
     RobertaTokenizer,
     Trainer,
@@ -34,6 +33,9 @@ EMOTION_LABELS = [
     "disgust",
     "none",
 ]
+
+best_accuracy = 0.0
+best_f1 = 0.0
 
 tokenizer = RobertaTokenizer.from_pretrained(MODEL_NAME, max_length=CONTEXT_LENGTH)
 
@@ -69,15 +71,24 @@ def create_and_clear_folder():
 
 
 def compute_metrics(eval_pred):
+    global best_accuracy, best_f1
+
     logits, labels = eval_pred
     # logits.to(device)
     predictions = (torch.sigmoid(torch.tensor(logits)) > 0.5).int()
     accuracy = accuracy_score(labels, predictions.numpy())
-    f1 = f1_score(labels, predictions.numpy(), average="macro")
+    f1 = f1_score(labels, predictions.numpy(), average="macro", zero_division="warn")
+
+    if f1 > best_f1:
+        best_f1 = f1
+
+    if accuracy > best_accuracy:
+        best_accuracy = accuracy
+
     return {"accuracy": accuracy, "f1": f1}
 
 
-def plot_metrics(trainer):
+def plot_metrics(trainer: Trainer):
     train_logs = trainer.state.log_history
 
     # Extract the training loss and epoch information (or any other metric)
@@ -92,7 +103,8 @@ def plot_metrics(trainer):
     plt.title("Training Loss Over Time")
     plt.legend()
     plt.grid(True)
-    plt.show()
+    # save the plot to file
+    plt.savefig(str(OUTPUT_DIR) + "/loss_plot.png")
 
 
 def load_data():
@@ -134,8 +146,6 @@ def preprocess_data(examples):
 
     tokenized["labels"] = labels
 
-    print("Tokenized:", tokenized)
-
     return tokenized
 
 
@@ -169,19 +179,15 @@ def finetune():
     )
     print_checkpoint("Dataset loaded & preprocessed")
 
-    data_collator = DataCollatorWithPadding(
-        tokenizer=tokenizer, padding=True, return_tensors="pt"
-    )
-
     args = TrainingArguments(
         output_dir=OUTPUT_DIR,
         overwrite_output_dir=True,
         per_device_train_batch_size=BATCH_SIZE,
         num_train_epochs=EPOCHS,
-        log_level="info",
+        # log_level="info",
         # logging_dir=str(OUTPUT_DIR) + "/logs",
-        logging_steps=10,
-        logging_strategy="steps",
+        # logging_steps=10,
+        # logging_strategy="steps",
         # gradient_accumulation_steps=8,
         weight_decay=0.01,
         # warmup_steps=500,
@@ -196,10 +202,10 @@ def finetune():
     trainer = Trainer(
         args=args,
         model=model,
+        tokenizer=tokenizer,
         train_dataset=train_dataset,
         eval_dataset=val_dataset,
-        data_collator=data_collator,
-        # compute_metrics=compute_metrics,
+        compute_metrics=compute_metrics,
     )
 
     print_checkpoint("Training started")
@@ -209,7 +215,10 @@ def finetune():
     trainer.save_model(str(OUTPUT_DIR))
     print_checkpoint("Model saved")
 
-    # plot_metrics(trainer)
+    plot_metrics(trainer)
+
+    print("Best accuracy:", best_accuracy)
+    print("Best f1:", best_f1)
 
     # trainer.evaluate()
     # print_checkpoint("Evaluation finished")
