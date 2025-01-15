@@ -17,9 +17,14 @@ from transformers import (
 
 # Config
 MODEL_NAME = Path("models/roberta-base/")
-OUTPUT_DIR = Path("output/roberta-semeval")
-DATA_SET_PATH = Path("data/codabench_data/train/eng_a_parsed.json")
 CACHE_DIR = Path("cache-dir/")
+
+# Codabench data
+# OUTPUT_DIR = Path("output/roberta-semeval")
+# DATA_SET_PATH = Path("data/codabench_data/train/eng_a_parsed.json")
+
+OUTPUT_DIR = Path("output/emotions-data")
+DATA_SET_PATH = Path("data/Emotions_Data/parsed_data.json")
 
 # Hyperparameters
 LEARNING_RATE: float = 1e-5
@@ -285,5 +290,5 @@ def print_checkpoint(message: str):
 
 
 if __name__ == "__main__":
-    create_and_clear_folder()
+    # create_and_clear_folder()
     finetune()
