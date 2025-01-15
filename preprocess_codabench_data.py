@@ -1,5 +1,6 @@
 import csv
 import json
+import re
 
 INPUT_PATH_1 = "data/codabench_data/train/eng_a.csv"
 INPUT_PATH_2 = "data/codabench_data/train/eng_b.csv"
@@ -127,7 +128,33 @@ def remove_junk(line: str) -> str:
     line = line.replace("''", "")
     line = line.replace("{", "")
     line = line.replace("}", "")
-    line = line.replace("  ", " ")
+    line = line.replace("[NAME]", "")
+
+    while line.count("  ") > 0:
+        line = line.replace("  ", " ")
+
+    # remove urls
+    while re.search(r"http\S+", line):
+        line = re.sub(r"http\S+", "", line)
+
+    while re.search(r"www\.\[a-zA-Z0-9]+", line):
+        line = re.sub(r"www\.\[a-zA-Z0-9]+", "", line)
+
+    # remove all words that start with @
+    while re.search(r"@\S+", line):
+        line = re.sub(r"@\S+", "", line)
+
+    # remove still like \ud83d or \ude0d or similar
+    # while re.search(r"\\u\S+", line):
+    # line = re.sub(r"\\u\S+", "", line)
+
+    # remove all words that start with \
+    while re.search(r"\\\S+", line):
+        line = re.sub(r"\\\S+", "", line)
+
+    # remove \r
+    while re.search(r"\\r", line):
+        line = re.sub(r"\\r", "", line)
 
     # if there is only one " in the line, remove it
     if line.count('"') == 1:
