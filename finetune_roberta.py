@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
 from datasets import load_dataset
 from sklearn.metrics import accuracy_score, f1_score  # noqa
@@ -20,7 +21,7 @@ CACHE_DIR = Path("cache-dir/")
 
 # Hyperparameters
 LEARNING_RATE: float = 1e-5
-EPOCHS: int = 15
+EPOCHS: int = 20
 BATCH_SIZE: int = 16
 CONTEXT_LENGTH: int = 512
 
@@ -35,7 +36,9 @@ EMOTION_LABELS = [
 ]
 
 best_accuracy = 0.0
+best_accuracy_epoch = 0
 best_f1 = 0.0
+best_f1_epoch = 0
 
 tokenizer = RobertaTokenizer.from_pretrained(MODEL_NAME, max_length=CONTEXT_LENGTH)
 
@@ -71,7 +74,7 @@ def create_and_clear_folder():
 
 
 def compute_metrics(eval_pred):
-    global best_accuracy, best_f1
+    global best_accuracy, best_f1, best_accuracy_epoch, best_f1_epoch
 
     logits, labels = eval_pred
     # logits.to(device)
@@ -81,30 +84,61 @@ def compute_metrics(eval_pred):
 
     if f1 > best_f1:
         best_f1 = f1
+        best_f1_epoch = eval_pred["epoch"]
 
     if accuracy > best_accuracy:
         best_accuracy = accuracy
+        best_accuracy_epoch = eval_pred["epoch"]
 
     return {"accuracy": accuracy, "f1": f1}
 
 
 def plot_metrics(trainer: Trainer):
     train_logs = trainer.state.log_history
+    for log in train_logs:
+        print("Training log:", log)
 
-    # Extract the training loss and epoch information (or any other metric)
-    losses = [log["loss"] for log in train_logs if "loss" in log]
-    epochs = [log["epoch"] for log in train_logs if "loss" in log]
+    # Separate training and evaluation logs
+    training_logs = [log for log in train_logs if "loss" in log]
+    eval_logs = [log for log in train_logs if "eval_loss" in log]
 
-    # Plot the loss over time
-    plt.figure(figsize=(10, 6))
-    plt.plot(epochs, losses, label="Training Loss", color="blue")
+    # Extract training loss and epochs
+    train_losses = [log["loss"] for log in training_logs]
+    train_epochs = [log["epoch"] for log in training_logs]
+
+    # Extract evaluation metrics and epochs
+    eval_epochs = [log["epoch"] for log in eval_logs]
+    eval_accuracies = [log["eval_accuracy"] for log in eval_logs]
+    eval_f1s = [log["eval_f1"] for log in eval_logs]
+
+    # Create the plot
+    plt.figure(figsize=(15, 6))
+
+    # Plot training loss
+    plt.plot(train_epochs, train_losses, label="Training Loss", color="blue")
+
+    # Plot evaluation metrics (only if there are evaluation logs)
+    if eval_logs:
+        plt.plot(
+            eval_epochs,
+            eval_accuracies,
+            label="Validation Accuracy",
+            color="green",
+        )
+        plt.plot(
+            eval_epochs,
+            eval_f1s,
+            label="Validation F1 Score (Macro)",
+            color="red",
+        )
+
     plt.xlabel("Epochs")
-    plt.ylabel("Loss")
-    plt.title("Training Loss Over Time")
+    plt.ylabel("Value")
+    plt.title("Training Loss and Validation Metrics Over Time")
     plt.legend()
+    plt.xticks(np.arange(min(train_epochs), max(train_epochs) + 1, 1.0))
     plt.grid(True)
-    # save the plot to file
-    plt.savefig(str(OUTPUT_DIR) + "/loss_plot.png")
+    plt.savefig(str(OUTPUT_DIR) + "/metrics_plot.png")
 
 
 def load_data():
@@ -217,7 +251,7 @@ def finetune():
 
     plot_metrics(trainer)
 
-    print("Best accuracy:", best_accuracy)
+    print("\nBest accuracy:", best_accuracy)
     print("Best f1:", best_f1)
 
     # trainer.evaluate()
