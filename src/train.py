@@ -9,7 +9,8 @@ from models.lm_classifier import RobertaMultiLabelClassification
 from datasets import load_from_disk
 from data.preprocessing import one_hot_encoding, retrieve_datasets
 from omegaconf import DictConfig
-from misc.misc import search_available_devices, plot_losses, statistics_to_csv
+from misc.misc import search_available_devices, plot_losses, statistics_to_csv, count_correct_samples
+from sklearn.metrics import f1_score
 
 def tokenize(data, tokenizer):
     # It's possible to adjust max_length or use dynamic patterns -> might be memory efficient since we rarely to never have 512 (or more) tokens per sentence
@@ -63,13 +64,14 @@ def train(cfg: DictConfig):
     val_loader = DataLoader(val_dataset, batch_size=cfg.batch_size)
 
     # define accumulators for loss after each period
-    train_losses, val_losses = list(), list()
+    train_losses, val_losses, train_acc, val_acc, f1_train, f1_val = list(), list(), list(), list(), list(), list()
 
     for epoch in range(cfg.epochs):
         print(f'Start Training Epoch {epoch+1}.')
         model.train()
-        total_train_loss = 0.0 
-
+        total_train_loss = 0.0
+        correct_train = 0
+        f1_t = []
         for batch in train_loader:
             input_ids, attention_mask, labels = batch['input_ids'].to(device), batch['attention_mask'].to(device), batch['label'].to(device)
             optimizer.zero_grad()
@@ -78,9 +80,13 @@ def train(cfg: DictConfig):
             loss.backward()
             optimizer.step()
             scheduler.step()
+            f1_t.append(f1_score(labels, outputs.numpy(), average='macro', zero_division='warn'))
+            correct_train += count_correct_samples(outputs, labels)
             total_train_loss += loss.item()
 
         train_losses.append(total_train_loss / len(train_loader))
+        train_acc.append(correct_train / len(train_loader))
+        f1_train.append(sum(f1_t)/len(f1_t))
 
         # save model checkpoint:
         checkpoint = {
@@ -95,25 +101,35 @@ def train(cfg: DictConfig):
         # Validation step
         model.eval()
         total_val_loss = 0
+        correct_val = 0
+        f1_v = []
         with torch.no_grad():
             print(f'Start Validation Epoch {epoch+1}.')
             for batch in val_loader:
                 input_ids, attention_mask, labels = batch['input_ids'], batch['attention_mask'], batch['label']
                 outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+                
                 if epoch == cfg.epochs:
                     print(f'Model Prediction: {torch.where(nn.Sigmoid(outputs) >=0.5, torch.tensor(1), torch.tensor(0))}')
                     print(f'Ground Truth: {labels}')
                     text = batch['text']
                     print(f'For the given texts: {text}')
                 loss = criterion(outputs, labels.float())
+                correct_val += count_correct_samples(outputs, labels)
+                f1_v.append(f1_score(labels, outputs.numpy(), average='macro', zero_division='warn'))
                 total_val_loss += loss.item()
 
         val_losses.append(total_val_loss / len(val_loader))
+        val_acc.append(correct_val / len(val_loader))
+        f1_val.append(sum(f1_v)/len(f1_v))
         print(f"Epoch {epoch+1}: Train Loss = {train_losses[-1]:.4f}, Validation Loss = {val_losses[-1]:.4f}")
 
-    statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/train_final.csv'), train_losses)
-    statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/validation_final.csv'), val_losses)
-    
+    statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/train_loss_final.csv'), train_losses)
+    statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/validation_loss_final.csv'), val_losses)
+    statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/train_acc_final.csv'), train_acc)
+    statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/validation_acc_final.csv'), val_acc)
+    statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/train_f1_final.csv'), f1_train)
+    statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/validation_f1_final.csv'), f1_val)
     
 if __name__ == '__main__':
     train()

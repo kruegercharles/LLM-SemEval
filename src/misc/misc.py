@@ -31,3 +31,13 @@ def initialize_weights_xavier(layer):
         nn.init.xavier_uniform_(layer.weight)
         if layer.bias is not None:
             nn.init.zeros_(layer.bias)
+
+def count_correct_samples(pred : torch.tensor, labels : torch.tensor, threshold=0.5):
+    return (((torch.sigmoid(pred) > threshold).float() == labels.float()).all(dim=1)).sum().item()
+
+logits = torch.tensor([[0.8, -1.2, 0.7, -0.1, -0.3, 0.6, -0.4]])  # shape: (batch_size=4, num_labels=7)
+labels = torch.tensor([[1, 0, 1, 0, 0, 1, 0]], dtype=torch.float32)  # shape: (batch_size=4, num_labels=7)
+
+# Count the number of correct answers (exact matches)
+correct_count = count_correct_samples(logits, labels)
+print(f"Number of correct samples (exact matches): {correct_count}")

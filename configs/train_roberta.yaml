@@ -14,5 +14,5 @@ num_labels: 7
 lr: 1e-3
 scheduler: 'cosine'
 warmup_steps: 1000
-epochs: 30
+epochs: 20
 batch_size: 64
