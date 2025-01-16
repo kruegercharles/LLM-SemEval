@@ -17,6 +17,6 @@ module load release/24.04
 module load GCCcore/12.3.0
 module load Python/3.11.3
 
-source /data/cats/ws/elru535b-llm_secrets/bin/activate
+source /data/cat/ws/elru535b-llm_secrets/bin/activate
 
 srun python3 /data/cat/ws/elru535b-llm_secrets/LLM-SemEval/src/train.py

@@ -80,7 +80,7 @@ def train(cfg: DictConfig):
             loss.backward()
             optimizer.step()
             scheduler.step()
-            #f1_t.append(f1_score(labels, outputs.numpy(), average='macro', zero_division='warn'))
+            #f1_t.append(f1_score(labels, outputs.detach().numpy(), average='macro', zero_division='warn'))
             correct_train += count_correct_samples(outputs, labels)
             total_train_loss += loss.item()
 
@@ -106,7 +106,7 @@ def train(cfg: DictConfig):
         with torch.no_grad():
             print(f'Start Validation Epoch {epoch+1}.')
             for batch in val_loader:
-                input_ids, attention_mask, labels = batch['input_ids'], batch['attention_mask'], batch['label']
+                input_ids, attention_mask, labels = batch['input_ids'].to(device), batch['attention_mask'].to(device), batch['label'].to(device)
                 outputs = model(input_ids=input_ids, attention_mask=attention_mask)
                 
                 if epoch == cfg.epochs:
@@ -116,7 +116,7 @@ def train(cfg: DictConfig):
                     print(f'For the given texts: {text}')
                 loss = criterion(outputs, labels.float())
                 correct_val += count_correct_samples(outputs, labels)
-                #f1_v.append(f1_score(labels, outputs.numpy(), average='macro', zero_division='warn'))
+                #f1_v.append(f1_score(labels, outputs.detach().numpy(), average='macro', zero_division='warn'))
                 total_val_loss += loss.item()
 
         val_losses.append(total_val_loss / len(val_loader))
