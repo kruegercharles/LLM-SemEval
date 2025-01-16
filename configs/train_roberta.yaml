@@ -11,8 +11,8 @@ hydra:
 model: 'roberta-base'
 data: '../data/codabench_data/train/combined'
 num_labels: 7
-lr: 1e-3
+lr: 1e-5
 scheduler: 'cosine'
-warmup_steps: 1000
-epochs: 30
-batch_size: 64
+warmup_steps: 0
+epochs: 20
+batch_size: 32

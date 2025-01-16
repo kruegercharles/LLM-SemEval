@@ -5,11 +5,11 @@ import hydra
 import os
 from torch.utils.data import DataLoader, random_split
 from transformers import RobertaTokenizer, get_scheduler, DataCollatorWithPadding, TrainingArguments, Trainer
-from models.lm_classifier import RobertaMultiLabelClassification
+from models.lm_classifier import RobertaMultiLabelClassification, RobertaSimpleClassification
 from datasets import load_from_disk
 from data.preprocessing import one_hot_encoding, retrieve_datasets
 from omegaconf import DictConfig
-from misc.misc import search_available_devices, plot_losses, statistics_to_csv, count_correct_samples
+from misc.misc import search_available_devices, plot_losses, statistics_to_csv, count_correct_samples, initialize_weights_xavier
 from sklearn.metrics import f1_score
 
 def tokenize(data, tokenizer):
@@ -50,10 +50,13 @@ def train(cfg: DictConfig):
     train_dataset, val_dataset, test_dataset = prepare_data(os.path.join(os.path.dirname(__file__), cfg.data), tokenizer, cfg.num_labels)
     # define model 
     model = RobertaMultiLabelClassification(cfg.model, cfg.num_labels).to(device=device)
+    #model = RobertaSimpleClassification(cfg.model, cfg.num_labels).to(device=device)
+    # initializ weights
+    model.classifier.apply(initialize_weights_xavier)
     # define optimizer
     optimizer = optim.AdamW(model.parameters(), lr=cfg.lr)
     # get a scheduler for learning rate adjustement
-    scheduler = get_scheduler(cfg.scheduler, optimizer=optimizer, num_warmup_steps=cfg.warmup_steps, num_training_steps=len(train_dataset))
+    #scheduler = get_scheduler(cfg.scheduler, optimizer=optimizer, num_warmup_steps=cfg.warmup_steps, num_training_steps=len(train_dataset))
     # define a loss function (BCEWithLogitsLoss for multi-label classification)
     criterion = nn.BCEWithLogitsLoss().to(device=device)
     # get data-collator to prepare torch dataloaders -> optional
@@ -73,20 +76,21 @@ def train(cfg: DictConfig):
         correct_train = 0
         f1_t = []
         for batch in train_loader:
-            input_ids, attention_mask, labels = batch['input_ids'].to(device), batch['attention_mask'].to(device), batch['label'].to(device)
+            input_ids, attention_mask, labels = batch['input_ids'].to(device), batch['attention_mask'].to(device), batch['label'].float().to(device)
             optimizer.zero_grad()
             outputs = model(input_ids=input_ids, attention_mask=attention_mask)
-            loss = criterion(outputs, labels.float())
+            loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-            scheduler.step()
-            #f1_t.append(f1_score(labels, outputs.detach().numpy(), average='macro', zero_division='warn'))
-            correct_train += count_correct_samples(outputs, labels)
+            #scheduler.step()
+            f1 = f1_score(labels.detach().cpu().numpy(), (torch.where(torch.sigmoid(outputs) >=0.5, torch.tensor(1.0), torch.tensor(0.0))).detach().cpu().numpy(), average='macro', zero_division=0.0)
+            f1_t.append(f1)
+            correct_train += count_correct_samples(outputs, labels) / len(batch['input_ids'])
             total_train_loss += loss.item()
 
-        train_losses.append(total_train_loss / len(train_loader))
+        train_losses.append(total_train_loss)
         train_acc.append(correct_train / len(train_loader))
-        #f1_train.append(sum(f1_t)/len(f1_t))
+        f1_train.append(sum(f1_t) / len(f1_t))
 
         # save model checkpoint:
         checkpoint = {
@@ -106,30 +110,33 @@ def train(cfg: DictConfig):
         with torch.no_grad():
             print(f'Start Validation Epoch {epoch+1}.')
             for batch in val_loader:
-                input_ids, attention_mask, labels = batch['input_ids'].to(device), batch['attention_mask'].to(device), batch['label'].to(device)
+                input_ids, attention_mask, labels = batch['input_ids'].to(device), batch['attention_mask'].to(device), batch['label'].float().to(device)
                 outputs = model(input_ids=input_ids, attention_mask=attention_mask)
                 
-                if epoch == cfg.epochs:
-                    print(f'Model Prediction: {torch.where(nn.Sigmoid(outputs) >=0.5, torch.tensor(1), torch.tensor(0))}')
-                    print(f'Ground Truth: {labels}')
-                    text = batch['text']
-                    print(f'For the given texts: {text}')
+                #if epoch == cfg.epochs:
+                #    print(f'Model Prediction: {torch.where(nn.Sigmoid(outputs) >=0.5, torch.tensor(1), torch.tensor(0))}')
+                #    print(f'Ground Truth: {labels}')
+                #    text = batch['text']
+                #    print(f'For the given texts: {text}')
                 loss = criterion(outputs, labels.float())
-                correct_val += count_correct_samples(outputs, labels)
-                #f1_v.append(f1_score(labels, outputs.detach().numpy(), average='macro', zero_division='warn'))
+                f1 = f1_score(labels.detach().cpu().numpy(), (torch.where(torch.sigmoid(outputs) >=0.5, torch.tensor(1.0), torch.tensor(0.0))).detach().cpu().numpy(), average='macro', zero_division=0.0)
+                f1_v.append(f1)
+                correct_val += (count_correct_samples(outputs, labels) / len(batch['input_ids']))
                 total_val_loss += loss.item()
 
-        val_losses.append(total_val_loss / len(val_loader))
+        print("Predictions: ", torch.where(torch.sigmoid(outputs) >=0.5, torch.tensor(1.0), torch.tensor(0.0)))
+        print("Labels: ", labels)
+        val_losses.append(total_val_loss)
         val_acc.append(correct_val / len(val_loader))
-        #f1_val.append(sum(f1_v)/len(f1_v))
-        print(f"Epoch {epoch+1}: Train Loss = {train_losses[-1]:.4f}, Validation Loss = {val_losses[-1]:.4f}")
+        f1_val.append(sum(f1_v) / len(f1_v))
+        print(f"Epoch {epoch+1}: Train Loss = {train_losses[-1]:.4f}, Validation Loss = {val_losses[-1]:.4f}, Validation Acc. = {val_acc[-1]:.4f}")
 
     statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/train_loss_final.csv'), train_losses)
     statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/validation_loss_final.csv'), val_losses)
     statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/train_acc_final.csv'), train_acc)
     statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/validation_acc_final.csv'), val_acc)
-    #statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/train_f1_final.csv'), f1_train)
-    #statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/validation_f1_final.csv'), f1_val)
+    statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/train_f1_final.csv'), f1_train)
+    statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/validation_f1_final.csv'), f1_val)
     
 if __name__ == '__main__':
     train()

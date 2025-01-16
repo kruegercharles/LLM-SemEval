@@ -33,4 +33,4 @@ def initialize_weights_xavier(layer):
             nn.init.zeros_(layer.bias)
 
 def count_correct_samples(pred : torch.tensor, labels : torch.tensor, threshold=0.5):
-    return (((torch.sigmoid(pred) > threshold).float() == labels.float()).all(dim=1)).sum().item()
+    return (((torch.sigmoid(pred) > threshold) == labels).all(dim=1)).sum().item()

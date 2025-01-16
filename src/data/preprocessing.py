@@ -9,7 +9,7 @@ DATASET_IDS = {
     ],
     'on' : [
         'SkyWater21/lt_go_emotions',
-        'SkyWater21/ru_emotions'
+        #'SkyWater21/ru_emotions'
     ]
 }
 
