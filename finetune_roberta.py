@@ -15,6 +15,17 @@ from transformers import (
     TrainingArguments,
 )
 
+"""
+This script fine-tunes a RoBERTa model for multi-label emotion classification using a given dataset.
+It performs the following tasks:
+- Configures model and training parameters.
+- Loads and preprocesses the dataset.
+- Defines metrics for evaluation.
+- Fine-tunes the RoBERTa model.
+- Evaluates the model and saves the best model and training logs.
+- Generates and saves plots for training loss and validation metrics.
+"""
+
 # Config
 MODEL_NAME = Path("models/roberta-base/")
 CACHE_DIR = Path("cache-dir/")
@@ -28,7 +39,7 @@ DATA_SET_PATH = Path("data/Emotions_Data/parsed_data.json")
 
 # Hyperparameters
 LEARNING_RATE: float = 1e-5
-EPOCHS: int = 20
+EPOCHS: int = 5  # 20
 BATCH_SIZE: int = 16
 CONTEXT_LENGTH: int = 512
 

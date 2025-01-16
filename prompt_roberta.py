@@ -8,6 +8,24 @@ from transformers import (
     RobertaTokenizer,
 )
 
+"""
+This script performs emotion classification using an ensemble of RoBERTa models.
+
+It loads a pre-trained RoBERTa model fine-tuned for emotion classification.
+For each input prompt, it runs the model multiple times.
+It uses a voting system to aggregate the predictions from each run.
+The final predicted emotions are those that receive at least half the total votes.
+The script compares the final predictions with expected answers for evaluation.
+
+Key aspects:
+- Uses a pre-trained RoBERTa model.
+- Employs an ensemble method with voting.
+- Predicts multiple emotions for each prompt.
+- Evaluates predictions against expected answers.
+- Currently loads the same model multiple times, which limits the ensemble's effectiveness.
+"""
+
+
 # Define emotion labels
 EMOTION_LABELS = [
     "anger",
