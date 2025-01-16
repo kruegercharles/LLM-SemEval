@@ -12,13 +12,11 @@ class RobertaMultiLabelClassification(nn.Module):
         self.attention_weights = nn.Parameter(torch.randn(hidden_size))
         self.classifier = nn.Sequential(
             nn.Linear(self.backbone.config.hidden_size, 512),
-            nn.ELU(),
-            nn.Linear(512, 256),
-            nn.ELU(),
-            nn.Linear(256, 128),
-            nn.ELU(),
-            nn.Linear(128, 64),
-            nn.ELU(),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(512, 64),
+            nn.ReLU(),
+            nn.Dropout(0.2),
             nn.Linear(64, num_labels)
         )
 
@@ -36,3 +34,19 @@ class RobertaMultiLabelClassification(nn.Module):
         # pass pooled output to the classifier
         logits = self.classifier(pooled_output)
         return logits
+
+class RobertaSimpleClassification(nn.Module):
+    def __init__(self, backbone, num_labels):
+        super(RobertaSimpleClassification, self).__init__()
+        self.backbone = RobertaModel.from_pretrained(backbone)
+        # hidden.size = 768 for roberta-base and 1024 for roberta-large
+        self.classifier = nn.Sequential(
+            nn.Dropout(0.1),
+            nn.Linear(self.backbone.config.hidden_size, num_labels),
+            )
+    
+    def forward(self, input_ids, attention_mask):
+        out = self.backbone(input_ids=input_ids, attention_mask=attention_mask)
+        cls_tk = out.last_hidden_state[:, 0, :]
+        out = self.classifier(cls_tk)
+        return out
