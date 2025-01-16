@@ -80,13 +80,13 @@ def train(cfg: DictConfig):
             loss.backward()
             optimizer.step()
             scheduler.step()
-            f1_t.append(f1_score(labels, outputs.numpy(), average='macro', zero_division='warn'))
+            #f1_t.append(f1_score(labels, outputs.numpy(), average='macro', zero_division='warn'))
             correct_train += count_correct_samples(outputs, labels)
             total_train_loss += loss.item()
 
         train_losses.append(total_train_loss / len(train_loader))
         train_acc.append(correct_train / len(train_loader))
-        f1_train.append(sum(f1_t)/len(f1_t))
+        #f1_train.append(sum(f1_t)/len(f1_t))
 
         # save model checkpoint:
         checkpoint = {
@@ -116,20 +116,20 @@ def train(cfg: DictConfig):
                     print(f'For the given texts: {text}')
                 loss = criterion(outputs, labels.float())
                 correct_val += count_correct_samples(outputs, labels)
-                f1_v.append(f1_score(labels, outputs.numpy(), average='macro', zero_division='warn'))
+                #f1_v.append(f1_score(labels, outputs.numpy(), average='macro', zero_division='warn'))
                 total_val_loss += loss.item()
 
         val_losses.append(total_val_loss / len(val_loader))
         val_acc.append(correct_val / len(val_loader))
-        f1_val.append(sum(f1_v)/len(f1_v))
+        #f1_val.append(sum(f1_v)/len(f1_v))
         print(f"Epoch {epoch+1}: Train Loss = {train_losses[-1]:.4f}, Validation Loss = {val_losses[-1]:.4f}")
 
     statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/train_loss_final.csv'), train_losses)
     statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/validation_loss_final.csv'), val_losses)
     statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/train_acc_final.csv'), train_acc)
     statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/validation_acc_final.csv'), val_acc)
-    statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/train_f1_final.csv'), f1_train)
-    statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/validation_f1_final.csv'), f1_val)
+    #statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/train_f1_final.csv'), f1_train)
+    #statistics_to_csv(os.path.join(os.path.dirname(__file__), '../outputs/statistics/validation_f1_final.csv'), f1_val)
     
 if __name__ == '__main__':
     train()

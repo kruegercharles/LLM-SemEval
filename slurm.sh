@@ -1,13 +1,13 @@
 #!/bin/bash
 
-#SBATCH --partition=capella
-#SBATCH --mem=80G
+#SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=2
+#SBATCH --cpus-per-task=1
+#SBATCH --mem-per-cpu=48G
 #SBATCH --gres=gpu:1
-#SBATCH --time=24:00:00
-#SBATCH --output=/home/elru535b/data/cat/ws/elru535b-llm_secrets/logs/log-%j.log
-#SBATCH --error=/home/elru535b/data/walrus/ws/elru535b-llm_secrets/logs/errors-%j.log
+#SBATCH --time=08:00:00
+#SBATCH --output=/data/cat/ws/elru535b-llm_secrets/logs/log-%j.log
+#SBATCH --error=/data/cat/ws/elru535b-llm_secrets/logs/errors-%j.log
 #SBATCH --mail-type=begin,end,fail
 #SBATCH --mail-user=elia.ruehle@mailbox.tu-dresden.de
 #SBATCH --account=p_scads_llm_secrets
@@ -17,8 +17,6 @@ module load release/24.04
 module load GCCcore/12.3.0
 module load Python/3.11.3
 
-source /home/elru535b/data/cats/ws/elru535b-llm_secrets/bin/activate
+source /data/cats/ws/elru535b-llm_secrets/bin/activate
 
-python3 /home/elru535b/data/cat/ws/elru535b-llm_secrets/LLM-SemEval/src/train.py
-
-deactivate
+srun python3 /data/cat/ws/elru535b-llm_secrets/LLM-SemEval/src/train.py
