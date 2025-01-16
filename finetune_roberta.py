@@ -30,16 +30,17 @@ It performs the following tasks:
 MODEL_NAME = Path("models/roberta-base/")
 CACHE_DIR = Path("cache-dir/")
 
-# Codabench data
+# Codabench data:
 # OUTPUT_DIR = Path("output/roberta-semeval")
 # DATA_SET_PATH = Path("data/codabench_data/train/eng_a_parsed.json")
 
+# Emotions data:
 OUTPUT_DIR = Path("output/emotions-data")
 DATA_SET_PATH = Path("data/Emotions_Data/parsed_data.json")
 
 # Hyperparameters
 LEARNING_RATE: float = 1e-5
-EPOCHS: int = 5  # 20
+EPOCHS: int = 10  # 20
 BATCH_SIZE: int = 16
 CONTEXT_LENGTH: int = 512
 
@@ -120,14 +121,37 @@ def evaluate_metrics(trainer: Trainer):
             best_eval_f1 = log["eval_f1"]
             best_eval_f1_epoch = log["epoch"]
 
-    print("\nBest evaluation loss:", best_eval_loss, "at epoch", best_eval_loss_epoch)
-    print(
-        "Best evaluation accuracy:",
-        best_eval_accuracy,
-        "at epoch",
-        best_eval_accuracy_epoch,
+    best = []
+
+    best_text_1 = (
+        "Best evaluation loss: "
+        + str(best_eval_loss)
+        + " at epoch "
+        + str(best_eval_loss_epoch)
     )
-    print("Best evaluation f1:", best_eval_f1, "at epoch", best_eval_f1_epoch)
+    best.append(best_text_1)
+    print("\n", best_text_1)
+
+    best_text_2 = (
+        "Best evaluation accuracy: "
+        + str(best_eval_accuracy)
+        + " at epoch "
+        + str(best_eval_accuracy_epoch)
+    )
+    best.append(best_text_2)
+    print(best_text_2)
+
+    best_text_3 = (
+        "Best evaluation f1: "
+        + str(best_eval_f1)
+        + " at epoch "
+        + str(best_eval_f1_epoch)
+    )
+    best.append(best_text_3)
+    print(best_text_3)
+
+    with open(str(OUTPUT_DIR) + "/best.txt", "w") as f:
+        f.write("\n".join(best))
 
     # Separate training and evaluation logs
     training_logs = [log for log in train_logs if "loss" in log]

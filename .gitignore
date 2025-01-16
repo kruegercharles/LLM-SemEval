@@ -169,3 +169,5 @@ cache-dir/*
 !cache-dir/.gitkeep
 
 output/*
+
+data/Emotions_Data/*
