@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem-per-cpu=48G
 #SBATCH --gres=gpu:1
-#SBATCH --time=08:00:00
+#SBATCH --time=30:00:00
 #SBATCH --output=/data/cat/ws/elru535b-llm_secrets/logs/log-%j.log
 #SBATCH --error=/data/cat/ws/elru535b-llm_secrets/logs/errors-%j.log
 #SBATCH --mail-type=begin,end,fail
