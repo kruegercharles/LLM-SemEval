@@ -28,7 +28,7 @@ It performs the following tasks:
 """
 
 # Config
-MODEL_NAME = Path("models/roberta-base/")
+MODEL_TO_FINETUNE_NAME = Path("models/roberta-base/")
 CACHE_DIR = Path("cache-dir/")
 
 # Codabench data:
@@ -40,17 +40,23 @@ CACHE_DIR = Path("cache-dir/")
 # DATA_SET_PATH = Path("data/Emotions_Data/parsed_data.json")
 
 # Dair-Ai Data
-OUTPUT_DIR = Path("output/dair-ai")
-DATA_SET_PATH = Path("data/dair-ai/parsed_data.json")
+# OUTPUT_DIR = Path("output/dair-ai")
+# DATA_SET_PATH = Path("data/dair-ai/parsed_data.json")
+
+# GoEmotions data
+OUTPUT_DIR = Path("output/goemotions")
+DATA_SET_PATH = Path("data/go_emotions/parsed_data.json")
 
 
 # Hyperparameters
 LEARNING_RATE: float = 1e-5
-EPOCHS: int = 10  # 20
+EPOCHS: int = 10
 BATCH_SIZE: int = 16
 CONTEXT_LENGTH: int = 512
 
-tokenizer = RobertaTokenizer.from_pretrained(MODEL_NAME, max_length=CONTEXT_LENGTH)
+tokenizer = RobertaTokenizer.from_pretrained(
+    MODEL_TO_FINETUNE_NAME, max_length=CONTEXT_LENGTH
+)
 
 
 def create_and_clear_folder():
@@ -126,7 +132,7 @@ def evaluate_metrics(trainer: Trainer):
         + str(best_eval_loss_epoch)
     )
     best.append(best_text_1)
-    print("\n", best_text_1)
+    print("\n" + best_text_1)
 
     best_text_2 = (
         "Best evaluation accuracy: "
@@ -251,7 +257,7 @@ def finetune():
     train_dataset, test_dataset, val_dataset = load_data()
 
     model = RobertaForSequenceClassification.from_pretrained(
-        MODEL_NAME,
+        MODEL_TO_FINETUNE_NAME,
         num_labels=len(EMOTION_LABELS),
         problem_type="multi_label_classification",
         cache_dir="cache-dir/",
@@ -290,6 +296,7 @@ def finetune():
         # lr_scheduler_type="cosine",
         learning_rate=LEARNING_RATE,
         eval_strategy="epoch",
+        optim="adamw_torch",
     )
 
     trainer = Trainer(

@@ -114,6 +114,12 @@ models.append(
 models.append(
     ModelClass(name="emotions_data", path="output/emotions-data/")
 )  # finetuned with emotions data
+models.append(
+    ModelClass(name="dair-ai", path="output/dair-ai/")
+)  # finetuned with dair-ai data
+models.append(
+    ModelClass(name="goemotions", path="output/goemotions/")
+)  # finetuned with goemotions data
 
 
 DEBUG_PRINT_ALL_PROBABILITIES = False
