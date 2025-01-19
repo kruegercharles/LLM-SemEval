@@ -4,17 +4,32 @@ import random
 import pandas as pd
 from common import EMOTION_LABELS, remove_junk
 
-# DATASET: https://huggingface.co/datasets/Villian7/Emotions_Data
-INPUT_PATH_1 = "data/Emotions_Data/test-00000-of-00001-a6072f77b7d062e8.parquet"
-INPUT_PATH_2 = "data/Emotions_Data/train-00000-of-00001-bd90147cb7ed1119.parquet"
-INPUT_PATH_3 = "data/Emotions_Data/validation-00000-of-00001-51e4f3beb5529153.parquet"
-paths = [INPUT_PATH_1, INPUT_PATH_2, INPUT_PATH_3]
+# DATASET: https://huggingface.co/datasets/dair-ai/emotion
+INPUT_PATH_1 = "data/dair-ai/train-00000-of-00001.parquet"
+paths = [INPUT_PATH_1]
 
 emotions_amount_output = {}
 for emotion in EMOTION_LABELS:
     emotions_amount_output[emotion] = 0
 
 emotions_amount_input = {}
+
+
+def map_emotion(label: int) -> str:
+    if label == 0:
+        return "sadness"
+    if label == 1:
+        return "joy"
+    if label == 2:
+        return "love"
+    if label == 3:
+        return "anger"
+    if label == 4:
+        return "fear"
+    if label == 5:
+        return "surprise"
+
+    raise ValueError("Unknown label:", label)
 
 
 def main():
@@ -30,10 +45,10 @@ def main():
         # Iterate over the rows and find every different label_text
         emotions = set()
         for _, row in data.iterrows():
-            emotions.add(row["label_text"])
-            emotions_amount_input[row["label_text"]] = (
-                emotions_amount_input.get(row["label_text"], 0) + 1
-            )
+            emotion = map_emotion(row["label"])
+
+            emotions.add(emotion)
+            emotions_amount_input[emotion] = emotions_amount_input.get(emotion, 0) + 1
         print("Emotions:", emotions)
 
         rows = len(data)
@@ -53,12 +68,12 @@ def main():
                     "%",
                 )
 
-            emotion_found = [row["label_text"]][0]
+            emotion_found = map_emotion([row["label"]][0])
 
             if emotion_found not in emotions:
                 print("Emotion not found:", emotion_found)
-                print('[row["label_text"]]:', [row["label_text"]])
-                print('[row["label_text"]][0]:', [row["label_text"]][0])
+                print('[row["label"]]:', [row["label"]])
+                print('[row["label"]][0]:', [row["label"]][0])
                 raise ValueError("Emotion not found")
 
             if emotion_found in EMOTION_LABELS:
@@ -92,6 +107,11 @@ def main():
 
     print("\nEmotions amount input:", emotions_amount_input)
     print("Emotions amount output:", emotions_amount_output)
+
+    # remove all keys with value 0 from emotions_amount_output
+    for key in list(emotions_amount_output.keys()):
+        if emotions_amount_output[key] == 0:
+            del emotions_amount_output[key]
 
     # find the key in emotions_amount_output with the smallest value
     min_value = min(emotions_amount_output.values())
@@ -153,7 +173,7 @@ def main():
     print("Emotions for pruning:", emotions_for_pruning)
 
     # Save the data to a json file
-    with open("data/Emotions_Data/parsed_data.json", "w", encoding="utf-8") as f:
+    with open("data/dair-ai/parsed_data.json", "w", encoding="utf-8") as f:
         json.dump(pruned_data, f, indent=4, ensure_ascii=False)
 
 

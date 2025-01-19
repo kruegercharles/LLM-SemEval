@@ -170,4 +170,5 @@ cache-dir/*
 
 output/*
 
-data/Emotions_Data/*
+data/
+!data/codabench_data/*
