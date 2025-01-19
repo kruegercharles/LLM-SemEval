@@ -36,8 +36,13 @@ CACHE_DIR = Path("cache-dir/")
 # DATA_SET_PATH = Path("data/codabench_data/train/eng_a_parsed.json")
 
 # Emotions data:
-OUTPUT_DIR = Path("output/emotions-data")
-DATA_SET_PATH = Path("data/Emotions_Data/parsed_data.json")
+# OUTPUT_DIR = Path("output/emotions-data")
+# DATA_SET_PATH = Path("data/Emotions_Data/parsed_data.json")
+
+# Dair-Ai Data
+OUTPUT_DIR = Path("output/dair-ai")
+DATA_SET_PATH = Path("data/dair-ai/parsed_data.json")
+
 
 # Hyperparameters
 LEARNING_RATE: float = 1e-5

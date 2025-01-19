@@ -172,3 +172,5 @@ output/*
 
 data/
 !data/codabench_data/*
+
+llama-stuff
