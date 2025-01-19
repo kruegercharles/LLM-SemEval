@@ -26,6 +26,24 @@ Key aspects:
 """
 
 
+class ModelClass:
+    def __init__(self, name: str, path: str):
+        self.name: str = name
+        self.path: str = path
+
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Model {path} not found.")
+
+        self.model: RobertaForSequenceClassification = (
+            RobertaForSequenceClassification.from_pretrained(
+                path,
+                num_labels=len(EMOTION_LABELS),
+                cache_dir="cache-dir/",
+                ignore_mismatched_sizes=True,
+            ).to("cuda" if torch.cuda.is_available() else "cpu")
+        )
+
+
 # Define emotion labels
 EMOTION_LABELS = [
     "anger",
@@ -36,7 +54,6 @@ EMOTION_LABELS = [
     "disgust",
 ]
 
-NUM_ANSWERS = 5
 PROMPT_EXAMPLES = {
     "My pride hurt worse than my leg did.": ["anger", "sadness"],
     "Now my parents live in the foothills, and the college is in a large valley.": [
@@ -52,8 +69,22 @@ PROMPT_EXAMPLES = {
 # Define threshold for binary classification
 THRESHOLD = 0.5
 
+models: list[ModelClass] = []
 
-DEBUG_PRINT_ALL_PROBABILITIES = False
+models.append(ModelClass(name="base-model", path="models/roberta-base/"))  # base model
+models.append(
+    ModelClass(name="semeval", path="output/roberta-semeval/")
+)  # finetuned with codabench data
+models.append(
+    ModelClass(name="emotions_data", path="output/emotions-data/")
+)  # finetuned with emotions data
+
+
+NUM_ANSWERS = len(models)
+print("Number of models:", NUM_ANSWERS)
+
+
+DEBUG_PRINT_ALL_PROBABILITIES = True
 
 random.seed(42)
 torch.manual_seed(42)
@@ -61,37 +92,13 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed_all(42)
 
 
-# MODEL_PATH = "models/roberta-base/"
-MODEL_PATH = "output/roberta-semeval/"
 TOKENIZER_PATH = "models/roberta-base/"
 
 
-if not os.path.exists(MODEL_PATH):
-    raise FileNotFoundError(f"Model {MODEL_PATH} not found.")
-
-
 def prompt():
-    models = []
+    tokenizer = RobertaTokenizer.from_pretrained(TOKENIZER_PATH, cache_dir="cache-dir/")
 
-    for i in range(NUM_ANSWERS):
-        # Load model and tokenizer
-        tokenizer = RobertaTokenizer.from_pretrained(
-            TOKENIZER_PATH, cache_dir="cache-dir/"
-        )
-        model = RobertaForSequenceClassification.from_pretrained(
-            MODEL_PATH,
-            num_labels=len(EMOTION_LABELS),
-            cache_dir="cache-dir/",
-            ignore_mismatched_sizes=True,
-        ).to("cuda" if torch.cuda.is_available() else "cpu")
-        # TODO: instead of always loading the same model, load different models each iteration
-
-        # Set model to evaluation mode to disable dropout
-        model.eval()
-
-        models.append((model, tokenizer))
-
-    for prompt, answer in PROMPT_EXAMPLES.items():
+    for prompt, solution in PROMPT_EXAMPLES.items():
         print(" ")
         print("-" * 50)
         print(f"Prompt: {prompt}")
@@ -101,21 +108,22 @@ def prompt():
         for emotion in EMOTION_LABELS:
             voting_table[emotion] = 0
 
-        # FIXME: for now the model just gives deterministically the same output each run, except when i load the model each iteration
+        for i, current_model in enumerate(models):
+            assert isinstance(current_model, ModelClass)
 
-        for i in range(NUM_ANSWERS):
-            print("Run:", i + 1)
+            print("Run:", i + 1, "with model:", current_model.name)
 
-            model, tokenizer = models[i]
+            # Set model to evaluation mode to disable dropout
+            current_model.model.eval()
 
             # Tokenize the input
             inputs = tokenizer(
                 prompt, return_tensors="pt", truncation=True, padding=True
-            ).to(model.device)
+            ).to(current_model.model.device)
 
             # Perform inference
             with torch.no_grad():
-                outputs: Tensor = model(**inputs)
+                outputs: Tensor = current_model.model(**inputs)
 
             # Get predicted probabilities
             probabilities = torch.sigmoid(outputs.logits)
@@ -147,7 +155,7 @@ def prompt():
                 final_answer.append(emotion)
 
         print("Voting table:", voting_table)
-        print("\nExpected answer:", answer)
+        print("\nExpected answer:", solution)
 
         final_answer_text = "Final answer:"
 
@@ -156,16 +164,38 @@ def prompt():
         else:
             print(final_answer_text, final_answer)
 
-        # compare final answer with expected answer
-        if set(final_answer) == set(answer):
-            print("Correct!")
-        else:
-            # show how many emotions are correct
-            correct_emotions = set(final_answer) & set(answer)
-            print(
-                "Correct emotions:",
-                str(len(correct_emotions) / len(answer) * 100) + "%",
-            )
+        evaulate_answer(set(final_answer), set(solution))
+
+
+def evaulate_answer(answer: set, solution: set):
+    """
+    Compares the final_answer and the solution and prints the results.
+    """
+    right = 0
+    wrong = 0
+
+    total = len(solution.union(answer))
+
+    # Every instance that is in both final_answer and solution is correct
+    # Every instance that is in final_answer but not in solution is wrong
+    # Every instance that is in solution but not in final_answer is wrong
+
+    # get the intersection of the two sets and remove them from both sets
+    intersection = answer.intersection(solution)
+    right += len(intersection)
+    answer -= intersection
+    solution -= intersection
+
+    union = answer.union(solution)
+    wrong += len(union)
+
+    assert right + wrong == total
+
+    print(
+        "Correct emotions:",
+        round((right / (right + wrong) * 100), None),
+        "%",
+    )
 
 
 if __name__ == "__main__":
