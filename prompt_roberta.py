@@ -45,12 +45,16 @@ class ModelClass:
                 ignore_mismatched_sizes=True,
             ).to("cuda" if torch.cuda.is_available() else "cpu")
         )
+        self.percentage_correct: list[float] = []
 
 
 def evaulate_answer(answer: set, solution: set) -> float:
     """
     Compares the final_answer and the solution and prints the results.
     """
+
+    # TODO: anstatt hier einfach den Prozentsatz zu berechnen, kann ich auch F1-Score, Precision und Recall berechnen
+
     right = 0
     wrong = 0
 
@@ -93,6 +97,8 @@ def load_dataset(path: str) -> dict:
 
     return dataset
 
+
+print("Start script")
 
 PROMPT_EXAMPLES = load_dataset("data/codabench_data/dev/eng_a_parsed.json")
 
@@ -170,6 +176,11 @@ def prompt():
             for emotion in predicted_emotions:
                 voting_table[emotion] += 1
 
+            # Create individual statistics for each model
+            current_model.percentage_correct.append(
+                evaulate_answer(set(predicted_emotions), set(solution))
+            )
+
             if DEBUG_PRINT_ALL_PROBABILITIES:
                 print("Probabilities:")
                 for label, prob in zip(
@@ -209,6 +220,14 @@ def prompt():
     )
     print("Average correct emotions:", round(percentage, 2), "%")
     print(" ")
+    for model in models:
+        print(f"Model '{model.name}':")
+        print(
+            "Percentage correct:",
+            round(sum(model.percentage_correct) / len(model.percentage_correct), 2),
+            "%",
+        )
+        print(" ")
 
 
 if __name__ == "__main__":
