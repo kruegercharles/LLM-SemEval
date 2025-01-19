@@ -6,6 +6,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from common import EMOTION_LABELS
 from datasets import load_dataset
 from sklearn.metrics import accuracy_score, f1_score  # noqa
 from transformers import (
@@ -43,16 +44,6 @@ LEARNING_RATE: float = 1e-5
 EPOCHS: int = 10  # 20
 BATCH_SIZE: int = 16
 CONTEXT_LENGTH: int = 512
-
-EMOTION_LABELS = [
-    "anger",
-    "fear",
-    "joy",
-    "sadness",
-    "surprise",
-    "disgust",
-    "none",
-]
 
 tokenizer = RobertaTokenizer.from_pretrained(MODEL_NAME, max_length=CONTEXT_LENGTH)
 

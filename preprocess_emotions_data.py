@@ -1,8 +1,8 @@
 import json
 import random
-import re
 
 import pandas as pd
+from common import EMOTION_LABELS, remove_junk
 
 # DATASET: https://huggingface.co/datasets/Villian7/Emotions_Data
 
@@ -11,82 +11,12 @@ INPUT_PATH_2 = "data/Emotions_Data/train-00000-of-00001-bd90147cb7ed1119.parquet
 INPUT_PATH_3 = "data/Emotions_Data/validation-00000-of-00001-51e4f3beb5529153.parquet"
 paths = [INPUT_PATH_1, INPUT_PATH_2, INPUT_PATH_3]
 
-EMOTION_LABELS = [
-    "anger",
-    "fear",
-    "joy",
-    "sadness",
-    "surprise",
-    "disgust",
-    "none",
-]
 
-emotions_amount_output = {
-    "anger": 0,
-    "fear": 0,
-    "joy": 0,
-    "sadness": 0,
-    "surprise": 0,
-    "disgust": 0,
-    "none": 0,
-}
+emotions_amount_output = {}
+for emotion in EMOTION_LABELS:
+    emotions_amount_output[emotion] = 0
 
 emotions_amount_input = {}
-
-
-def remove_junk(line: str) -> str:
-    line = line.replace("\n", "")
-    line = line.replace("~", "")
-    line = line.replace("`", "")
-    line = line.replace("<", "")
-    line = line.replace(">", "")
-    line = line.replace(";", "")
-    line = line.replace("&", "")
-    line = line.replace("#", "")
-    line = line.replace("nbsp;", "")
-    line = line.replace("*", "")
-    line = line.replace("''", "")
-    line = line.replace("{", "")
-    line = line.replace("}", "")
-    line = line.replace("[NAME]", "")
-
-    while line.count("  ") > 0:
-        line = line.replace("  ", " ")
-
-    # remove urls
-    while re.search(r"http\S+", line):
-        line = re.sub(r"http\S+", "", line)
-
-    while re.search(r"www\.\[a-zA-Z0-9]+", line):
-        line = re.sub(r"www\.\[a-zA-Z0-9]+", "", line)
-
-    # remove all words that start with @
-    while re.search(r"@\S+", line):
-        line = re.sub(r"@\S+", "", line)
-
-    # remove still like \ud83d or \ude0d or similar
-    # while re.search(r"\\u\S+", line):
-    # line = re.sub(r"\\u\S+", "", line)
-
-    # remove all words that start with \
-    while re.search(r"\\\S+", line):
-        line = re.sub(r"\\\S+", "", line)
-
-    # remove \r
-    while re.search(r"\\r", line):
-        line = re.sub(r"\\r", "", line)
-
-    # if there is only one " in the line, remove it
-    if line.count('"') == 1:
-        line = line.replace('"', "")
-
-    if line.endswith(":"):
-        line = line[:-1]
-
-    # remove spaces at the beginning and end
-    line = line.strip()
-
-    return line
 
 
 def main():

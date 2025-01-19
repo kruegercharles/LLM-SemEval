@@ -1,28 +1,24 @@
 import csv
 import json
-import re
 
-INPUT_PATH_1 = "data/codabench_data/train/eng_a.csv"
-INPUT_PATH_2 = "data/codabench_data/train/eng_b.csv"
+from common import remove_junk
+
+# Add True or False weather the emotions are complex or not
+INPUT_PATH_1 = ("data/codabench_data/dev/eng_a.csv", False)
+INPUT_PATH_2 = ("data/codabench_data/dev/eng_b.csv", True)
+INPUT_PATH_3 = ("data/codabench_data/dev/eng_c.csv", False)
 
 
-INPUT_PATHS = [INPUT_PATH_1, INPUT_PATH_2]
+INPUT_PATHS = [INPUT_PATH_1, INPUT_PATH_2, INPUT_PATH_3]
 
 PRINT_LINES = False
 
 
 def main():
-    for path in INPUT_PATHS:
+    for path, use_complex_emotions in INPUT_PATHS:
         # in path1 there are only binary emotions (either the emotion is there or not, 0 or 1)
         # in path2 there are complex for the bonus task (0 - 3)
         # this is important for the parsing below
-        use_complex_emotions = False
-        if path == INPUT_PATH_1:
-            use_complex_emotions = False
-        elif path == INPUT_PATH_2:
-            use_complex_emotions = True
-        else:
-            raise ValueError(f"Unexpected path: {path}")
 
         with open(path, "r") as f:
             data = csv.reader(f)
@@ -112,61 +108,6 @@ def main():
             # save the dataset
             with open(path.replace(".csv", "_parsed.json"), "w") as f:
                 json.dump(dataset, f, indent=4)
-
-
-def remove_junk(line: str) -> str:
-    line = line.replace("\n", "")
-    line = line.replace("~", "")
-    line = line.replace("`", "")
-    line = line.replace("<", "")
-    line = line.replace(">", "")
-    line = line.replace(";", "")
-    line = line.replace("&", "")
-    line = line.replace("#", "")
-    line = line.replace("nbsp;", "")
-    line = line.replace("*", "")
-    line = line.replace("''", "")
-    line = line.replace("{", "")
-    line = line.replace("}", "")
-    line = line.replace("[NAME]", "")
-
-    while line.count("  ") > 0:
-        line = line.replace("  ", " ")
-
-    # remove urls
-    while re.search(r"http\S+", line):
-        line = re.sub(r"http\S+", "", line)
-
-    while re.search(r"www\.\[a-zA-Z0-9]+", line):
-        line = re.sub(r"www\.\[a-zA-Z0-9]+", "", line)
-
-    # remove all words that start with @
-    while re.search(r"@\S+", line):
-        line = re.sub(r"@\S+", "", line)
-
-    # remove still like \ud83d or \ude0d or similar
-    # while re.search(r"\\u\S+", line):
-    # line = re.sub(r"\\u\S+", "", line)
-
-    # remove all words that start with \
-    while re.search(r"\\\S+", line):
-        line = re.sub(r"\\\S+", "", line)
-
-    # remove \r
-    while re.search(r"\\r", line):
-        line = re.sub(r"\\r", "", line)
-
-    # if there is only one " in the line, remove it
-    if line.count('"') == 1:
-        line = line.replace('"', "")
-
-    if line.endswith(":"):
-        line = line[:-1]
-
-    # remove spaces at the beginning and end
-    line = line.strip()
-
-    return line
 
 
 if __name__ == "__main__":

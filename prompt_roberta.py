@@ -1,5 +1,6 @@
 import os  # noqa
 import random  # noqa
+import json  # noqa
 
 import torch  # noqa
 from torch import Tensor  # noqa
@@ -7,6 +8,8 @@ from transformers import (
     RobertaForSequenceClassification,  # noqa
     RobertaTokenizer,
 )
+from common import EMOTION_LABELS
+
 
 """
 This script performs emotion classification using an ensemble of RoBERTa models.
@@ -44,27 +47,54 @@ class ModelClass:
         )
 
 
-# Define emotion labels
-EMOTION_LABELS = [
-    "anger",
-    "fear",
-    "joy",
-    "sadness",
-    "surprise",
-    "disgust",
-]
+def evaulate_answer(answer: set, solution: set) -> float:
+    """
+    Compares the final_answer and the solution and prints the results.
+    """
+    right = 0
+    wrong = 0
 
-PROMPT_EXAMPLES = {
-    "My pride hurt worse than my leg did.": ["anger", "sadness"],
-    "Now my parents live in the foothills, and the college is in a large valley.": [
-        "none"
-    ],
-    "I still cannot explain this.": ["fear", "surprise"],
-    "Then I decided to try and get up to go to the restroom, but I couldn't move!": [
-        "fear",
-        "surprise",
-    ],
-}
+    total = len(solution.union(answer))
+
+    # Every instance that is in both final_answer and solution is correct
+    # Every instance that is in final_answer but not in solution is wrong
+    # Every instance that is in solution but not in final_answer is wrong
+
+    # get the intersection of the two sets and remove them from both sets
+    intersection = answer.intersection(solution)
+    right += len(intersection)
+    answer -= intersection
+    solution -= intersection
+
+    union = answer.union(solution)
+    wrong += len(union)
+
+    assert right + wrong == total
+
+    correct = right / total * 100
+
+    if DEBUG_PRINT_STUFF:
+        print(
+            "Correct emotions:",
+            round(correct, None),
+            "%",
+        )
+
+    return correct
+
+
+def load_dataset(path: str) -> dict:
+    with open(path, "r") as f:
+        data = json.load(f)
+
+    dataset = {}
+    for dataline in data:
+        dataset[dataline["sentence"]] = dataline["emotions"]
+
+    return dataset
+
+
+PROMPT_EXAMPLES = load_dataset("data/codabench_data/dev/eng_a_parsed.json")
 
 # Define threshold for binary classification
 THRESHOLD = 0.5
@@ -80,11 +110,8 @@ models.append(
 )  # finetuned with emotions data
 
 
-NUM_ANSWERS = len(models)
-print("Number of models:", NUM_ANSWERS)
-
-
-DEBUG_PRINT_ALL_PROBABILITIES = True
+DEBUG_PRINT_ALL_PROBABILITIES = False
+DEBUG_PRINT_STUFF = False
 
 random.seed(42)
 torch.manual_seed(42)
@@ -98,11 +125,14 @@ TOKENIZER_PATH = "models/roberta-base/"
 def prompt():
     tokenizer = RobertaTokenizer.from_pretrained(TOKENIZER_PATH, cache_dir="cache-dir/")
 
+    statistics_correct_voting_table: list[float] = []
+
     for prompt, solution in PROMPT_EXAMPLES.items():
-        print(" ")
-        print("-" * 50)
-        print(f"Prompt: {prompt}")
-        print(" ")
+        if DEBUG_PRINT_STUFF:
+            print(" ")
+            print("-" * 50)
+            print(f"Prompt: {prompt}")
+            print(" ")
 
         voting_table = {}
         for emotion in EMOTION_LABELS:
@@ -111,7 +141,8 @@ def prompt():
         for i, current_model in enumerate(models):
             assert isinstance(current_model, ModelClass)
 
-            print("Run:", i + 1, "with model:", current_model.name)
+            if DEBUG_PRINT_STUFF:
+                print("Run:", i + 1, "with model:", current_model.name)
 
             # Set model to evaluation mode to disable dropout
             current_model.model.eval()
@@ -145,61 +176,44 @@ def prompt():
                     EMOTION_LABELS, probabilities.squeeze().tolist()
                 ):
                     print(f"  {label}: {prob:.3f}")
-            print(f"Predicted Emotion: {predicted_emotions}")
-            print(" ")
+            if DEBUG_PRINT_STUFF:
+                print(f"Predicted Emotion: {predicted_emotions}")
+                print(" ")
 
-        # Go through all results and find the set of emotions that at least NUM_ANSWERS/2 models predicted
+        # Go through all results and find the set of emotions that at least half of the models predicted
         final_answer = []
         for emotion, votes in voting_table.items():
-            if votes >= NUM_ANSWERS / 2:
+            if votes >= len(models) / 2:
                 final_answer.append(emotion)
 
-        print("Voting table:", voting_table)
-        print("\nExpected answer:", solution)
+        if DEBUG_PRINT_STUFF:
+            print("Voting table:", voting_table)
+            print("\nExpected answer:", solution)
 
-        final_answer_text = "Final answer:"
+            final_answer_text = "Final answer:"
 
-        if not final_answer:
-            print(final_answer_text, "none")
-        else:
-            print(final_answer_text, final_answer)
+            if not final_answer:
+                print(final_answer_text, "none")
+            else:
+                print(final_answer_text, final_answer)
 
-        evaulate_answer(set(final_answer), set(solution))
+        statistics_correct_voting_table.append(
+            evaulate_answer(set(final_answer), set(solution))
+        )
 
-
-def evaulate_answer(answer: set, solution: set):
-    """
-    Compares the final_answer and the solution and prints the results.
-    """
-    right = 0
-    wrong = 0
-
-    total = len(solution.union(answer))
-
-    # Every instance that is in both final_answer and solution is correct
-    # Every instance that is in final_answer but not in solution is wrong
-    # Every instance that is in solution but not in final_answer is wrong
-
-    # get the intersection of the two sets and remove them from both sets
-    intersection = answer.intersection(solution)
-    right += len(intersection)
-    answer -= intersection
-    solution -= intersection
-
-    union = answer.union(solution)
-    wrong += len(union)
-
-    assert right + wrong == total
-
-    print(
-        "Correct emotions:",
-        round((right / (right + wrong) * 100), None),
-        "%",
+    # Calculate statistics
+    print(" ")
+    print("Statistics:")
+    percentage = sum(statistics_correct_voting_table) / len(
+        statistics_correct_voting_table
     )
+    print("Average correct emotions:", round(percentage, 2), "%")
+    print(" ")
 
 
 if __name__ == "__main__":
     prompt()
-    print(" ")
-    print("-" * 50)
-    print(" ")
+    if DEBUG_PRINT_STUFF:
+        print(" ")
+        print("-" * 50)
+        print(" ")
