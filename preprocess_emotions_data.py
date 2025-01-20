@@ -16,6 +16,8 @@ for emotion in EMOTION_LABELS:
 
 emotions_amount_input = {}
 
+prune_data = False
+
 
 def main():
     all_data = []
@@ -93,68 +95,75 @@ def main():
     print("\nEmotions amount input:", emotions_amount_input)
     print("Emotions amount output:", emotions_amount_output)
 
-    # find the key in emotions_amount_output with the smallest value
-    min_value = min(emotions_amount_output.values())
-    # save the associated key
-    min_key = [
-        key
-        for key in emotions_amount_output
-        if emotions_amount_output[key] == min_value
-    ][0]
+    if prune_data:
+        # find the key in emotions_amount_output with the smallest value
+        min_value = min(emotions_amount_output.values())
+        # save the associated key
+        min_key = [
+            key
+            for key in emotions_amount_output
+            if emotions_amount_output[key] == min_value
+        ][0]
 
-    emotions_for_pruning = {
-        "anger": 0,
-        "fear": 0,
-        "joy": 0,
-        "sadness": 0,
-        "surprise": 0,
-        "disgust": 0,
-        "none": 0,
-    }
-    # go through all values and keep from every emotion maximum 4 times the min-value. Pick randomly
-    random.shuffle(all_data)
+        emotions_for_pruning = {
+            "anger": 0,
+            "fear": 0,
+            "joy": 0,
+            "sadness": 0,
+            "surprise": 0,
+            "disgust": 0,
+            "none": 0,
+        }
+        # go through all values and keep from every emotion maximum 4 times the min-value. Pick randomly
+        random.shuffle(all_data)
 
-    length_data = len(all_data)
-    index = 1
+        length_data = len(all_data)
+        index = 1
 
-    pruned_data = []
+        pruned_data = []
 
-    print("Shuffled all data")
-    for item in all_data:
-        if index % 10000 == 0:
-            print(
-                "Processed",
-                index,
-                "/",
-                length_data,
-                "rows =>",
-                round(index / length_data * 100, 2),
-                "%",
-            )
-        index += 1
+        print("Shuffled all data")
+        for item in all_data:
+            if index % 10000 == 0:
+                print(
+                    "Processed",
+                    index,
+                    "/",
+                    length_data,
+                    "rows =>",
+                    round(index / length_data * 100, 2),
+                    "%",
+                )
+            index += 1
 
-        # if item["emotions"] is not list:
-        # print("item:", item)
-        # print("item[emotions]:", item["emotions"])
-        # print("type(item[emotions]):", type(item["emotions"]))
-        # raise ValueError("item[emotions] is not a list")
+            # if item["emotions"] is not list:
+            # print("item:", item)
+            # print("item[emotions]:", item["emotions"])
+            # print("type(item[emotions]):", type(item["emotions"]))
+            # raise ValueError("item[emotions] is not a list")
 
-        emotion = item["emotions"][0]
-        # print("Emotion:", emotion)
-        if emotion not in emotions_for_pruning.keys():
-            print("Emotion not in emotions_for_pruning.keys():", emotion)
-        assert emotion in emotions_for_pruning.keys()
-        if emotions_for_pruning.get(emotion) < (min_value * 4):
-            emotions_for_pruning[emotion] += 1
-            pruned_data.append(item)
+            emotion = item["emotions"][0]
+            # print("Emotion:", emotion)
+            if emotion not in emotions_for_pruning.keys():
+                print("Emotion not in emotions_for_pruning.keys():", emotion)
+            assert emotion in emotions_for_pruning.keys()
+            if emotions_for_pruning.get(emotion) < (min_value * 4):
+                emotions_for_pruning[emotion] += 1
+                pruned_data.append(item)
 
-    print("Min value:", min_value, "for key:", min_key)
-    print("Length of all data after pruning:", len(pruned_data))
-    print("Emotions for pruning:", emotions_for_pruning)
+        print("Min value:", min_value, "for key:", min_key)
+        print("Length of all data after pruning:", len(pruned_data))
+        print("Emotions for pruning:", emotions_for_pruning)
 
-    # Save the data to a json file
-    with open("data/Emotions_Data/parsed_data.json", "w", encoding="utf-8") as f:
-        json.dump(pruned_data, f, indent=4, ensure_ascii=False)
+        # Save the data to a json file
+        with open("data/Emotions_Data/parsed_data.json", "w", encoding="utf-8") as f:
+            json.dump(pruned_data, f, indent=4, ensure_ascii=False)
+
+    else:
+        with open(
+            "data/Emotions_Data/parsed_data_unpruned.json", "w", encoding="utf-8"
+        ) as f:
+            json.dump(all_data, f, indent=4, ensure_ascii=False)
 
 
 if __name__ == "__main__":

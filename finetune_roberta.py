@@ -50,7 +50,7 @@ DATA_SET_PATH = Path("data/go_emotions/parsed_data.json")
 
 # Hyperparameters
 LEARNING_RATE: float = 1e-5
-EPOCHS: int = 10
+EPOCHS: int = 5
 BATCH_SIZE: int = 16
 CONTEXT_LENGTH: int = 512
 
@@ -290,9 +290,9 @@ def finetune():
         # gradient_accumulation_steps=8,
         weight_decay=0.01,
         # warmup_steps=500,
-        save_strategy="best",
+        save_strategy="epoch",
         save_total_limit=1,  # only store the best model
-        metric_for_best_model="eval_loss",  # TODO: change?
+        # metric_for_best_model="eval_loss",
         # lr_scheduler_type="cosine",
         learning_rate=LEARNING_RATE,
         eval_strategy="epoch",
