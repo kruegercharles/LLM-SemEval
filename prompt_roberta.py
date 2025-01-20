@@ -46,17 +46,17 @@ class ModelClass:
             ).to("cuda" if torch.cuda.is_available() else "cpu")
         )
         self.percentage_correct: list[float] = []
+        self.tp = 0
+        self.fp = 0
+        self.tn = 0
 
 
-def evaulate_answer(answer: set, solution: set) -> float:
+def evaulate_answer(answer: set, solution: set, model: ModelClass = None) -> float:
     """
     Compares the final_answer and the solution and prints the results.
     """
 
     # TODO: anstatt hier einfach den Prozentsatz zu berechnen, kann ich auch F1-Score, Precision und Recall berechnen
-
-    right = 0
-    wrong = 0
 
     total = len(solution.union(answer))
 
@@ -66,16 +66,17 @@ def evaulate_answer(answer: set, solution: set) -> float:
 
     # get the intersection of the two sets and remove them from both sets
     intersection = answer.intersection(solution)
-    right += len(intersection)
+    true_positives = len(intersection)
+
     answer -= intersection
     solution -= intersection
 
-    union = answer.union(solution)
-    wrong += len(union)
+    false_positives = len(answer)
+    false_negatives = len(solution)
 
-    assert right + wrong == total
+    assert true_positives + false_positives + false_negatives == total
 
-    correct = right / total * 100
+    correct = true_positives / total * 100
 
     if DEBUG_PRINT_STUFF:
         print(
@@ -83,6 +84,12 @@ def evaulate_answer(answer: set, solution: set) -> float:
             round(correct, None),
             "%",
         )
+
+    if model is not None:
+        model.percentage_correct.append(correct)
+        model.tp += true_positives
+        model.fp += false_positives
+        model.tn += false_negatives
 
     return correct
 
@@ -183,9 +190,7 @@ def prompt():
                 voting_table[emotion] += 1
 
             # Create individual statistics for each model
-            current_model.percentage_correct.append(
-                evaulate_answer(set(predicted_emotions), set(solution))
-            )
+            evaulate_answer(set(predicted_emotions), set(solution), current_model)
 
             if DEBUG_PRINT_ALL_PROBABILITIES:
                 print("Probabilities:")
@@ -215,7 +220,7 @@ def prompt():
                 print(final_answer_text, final_answer)
 
         statistics_correct_voting_table.append(
-            evaulate_answer(set(final_answer), set(solution))
+            evaulate_answer(set(final_answer), set(solution), None)
         )
 
     # Calculate statistics
@@ -224,6 +229,20 @@ def prompt():
     percentage = sum(statistics_correct_voting_table) / len(
         statistics_correct_voting_table
     )
+    total_tp = 0
+    total_fp = 0
+    total_tn = 0
+    for model in models:
+        total_tp += model.tp
+        total_fp += model.fp
+        total_tn += model.tn
+    precision = total_tp / (total_tp + total_fp)
+    recall = total_tp / (total_tp + total_tn)
+    f1_score = 2 * (precision * recall) / (precision + recall)
+    print("Precision:", round(precision, 2))
+    print("Recall:", round(recall, 2))
+    print("F1-Score:", round(f1_score, 2))
+
     print("Average correct emotions:", round(percentage, 2), "%")
     print(" ")
     for model in models:
@@ -233,6 +252,12 @@ def prompt():
             round(sum(model.percentage_correct) / len(model.percentage_correct), 2),
             "%",
         )
+        precision = model.tp / (model.tp + model.fp)
+        recall = model.tp / (model.tp + model.tn)
+        f1_score = 2 * (precision * recall) / (precision + recall)
+        print("Precision:", round(precision, 2))
+        print("Recall:", round(recall, 2))
+        print("F1-Score:", round(f1_score, 2))
         print(" ")
 
 
