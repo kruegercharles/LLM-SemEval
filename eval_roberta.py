@@ -127,6 +127,9 @@ models.append(
 models.append(
     ModelClass(name="goemotions", path="output/goemotions/")
 )  # finetuned with goemotions data
+models.append(
+    ModelClass(name="merged_dataset", path="output/merged-dataset/")
+)  # finetuned with merged dataset
 
 
 DEBUG_PRINT_ALL_PROBABILITIES = False
@@ -146,7 +149,15 @@ def prompt():
 
     statistics_correct_voting_table: list[float] = []
 
+    length = len(PROMPT_EXAMPLES.items())
+    print_checkpoint = length // 10
+    i = 1
+
     for prompt, solution in PROMPT_EXAMPLES.items():
+        if i % print_checkpoint == 0:
+            print(f"Progress: {i}/{length}")
+        i += 1
+
         if DEBUG_PRINT_STUFF:
             print(" ")
             print("-" * 50)

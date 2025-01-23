@@ -44,8 +44,12 @@ CACHE_DIR = Path("cache-dir/")
 # DATA_SET_PATH = Path("data/dair-ai/parsed_data.json")
 
 # GoEmotions data
-OUTPUT_DIR = Path("output/goemotions")
-DATA_SET_PATH = Path("data/go_emotions/parsed_data.json")
+# OUTPUT_DIR = Path("output/goemotions")
+# DATA_SET_PATH = Path("data/go_emotions/parsed_data.json")
+
+# Merged Dataset
+OUTPUT_DIR = Path("output/merged-dataset")
+DATA_SET_PATH = Path("data/merged_data.json")
 
 
 # Hyperparameters
