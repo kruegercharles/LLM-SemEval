@@ -8,11 +8,10 @@ hydra:
   run:  
     dir: .
 
-model: 'roberta-base'
-data: '../data/codabench_data/train/combined'
+model_name : base
+backbone: 'roberta-base'
+data: '../data/merged_data.json'
 num_labels: 7
 lr: 1e-5
-scheduler: 'cosine'
-warmup_steps: 0
-epochs: 20
-batch_size: 32
+epochs: 8
+batch_size: 64
