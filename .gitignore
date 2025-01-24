@@ -162,3 +162,4 @@ cython_debug/
 # Models
 models/checkpoints/Llama3.1-8B-Instruct/*
 data/codabench_data/train/combined/*
+data/merged_data.json
