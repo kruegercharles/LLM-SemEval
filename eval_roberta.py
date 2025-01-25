@@ -1,6 +1,8 @@
 import os  # noqa
 import random  # noqa
 import json  # noqa
+import matplotlib.pyplot as plt  # noqa
+import numpy as np  # noqa
 
 import torch  # noqa
 from torch import Tensor  # noqa
@@ -46,9 +48,15 @@ class ModelClass:
             ).to("cuda" if torch.cuda.is_available() else "cpu")
         )
         self.percentage_correct: list[float] = []
+        self.percentage_correct_number = 0
         self.tp = 0
         self.fp = 0
         self.tn = 0
+        self.fn = 0
+        self.precision = 0
+        self.recall = 0
+        self.accuracy = 0
+        self.f1_score = 0
 
 
 def evaulate_answer(answer: set, solution: set, model: ModelClass = None) -> float:
@@ -56,9 +64,12 @@ def evaulate_answer(answer: set, solution: set, model: ModelClass = None) -> flo
     Compares the final_answer and the solution and prints the results.
     """
 
-    # TODO: anstatt hier einfach den Prozentsatz zu berechnen, kann ich auch F1-Score, Precision und Recall berechnen
-
     total = len(solution.union(answer))
+
+    true_negatives = 0
+    for element in EMOTION_LABELS:
+        if element not in solution and element not in answer:
+            true_negatives += 1
 
     # Every instance that is in both final_answer and solution is correct
     # Every instance that is in final_answer but not in solution is wrong
@@ -89,7 +100,8 @@ def evaulate_answer(answer: set, solution: set, model: ModelClass = None) -> flo
         model.percentage_correct.append(correct)
         model.tp += true_positives
         model.fp += false_positives
-        model.tn += false_negatives
+        model.tn += true_negatives
+        model.fn += false_negatives
 
     return correct
 
@@ -105,6 +117,22 @@ def load_dataset(path: str) -> dict:
     return dataset
 
 
+def get_precision(tp, fp):
+    return round(tp / (tp + fp), 2)
+
+
+def get_recall(tp, fn):
+    return round(tp / (tp + fn), 2)
+
+
+def get_f1_score(precision, recall):
+    return round(2 * (precision * recall) / (precision + recall), 2)
+
+
+def get_accuracy(tp, fp, tn, fn):
+    return round((tp + tn) / (tp + fp + tn + fn), 2)
+
+
 print("Start script")
 
 PROMPT_EXAMPLES = load_dataset("data/codabench_data/dev/eng_a_parsed.json")
@@ -114,21 +142,23 @@ THRESHOLD = 0.5
 
 models: list[ModelClass] = []
 
-models.append(ModelClass(name="base-model", path="models/roberta-base/"))  # base model
 models.append(
-    ModelClass(name="semeval", path="output/roberta-semeval/")
+    ModelClass(name="RoBERTa base-model", path="models/roberta-base/")
+)  # base model
+models.append(
+    ModelClass(name="Finetuned semeval", path="output/roberta-semeval/")
 )  # finetuned with codabench data
 models.append(
-    ModelClass(name="emotions_data", path="output/emotions-data/")
+    ModelClass(name="Finetuned emotions_data", path="output/emotions-data/")
 )  # finetuned with emotions data
 models.append(
-    ModelClass(name="dair-ai", path="output/dair-ai/")
+    ModelClass(name="Finetuned dair-ai", path="output/dair-ai/")
 )  # finetuned with dair-ai data
 models.append(
-    ModelClass(name="goemotions", path="output/goemotions/")
+    ModelClass(name="Finetuned goemotions", path="output/goemotions/")
 )  # finetuned with goemotions data
 models.append(
-    ModelClass(name="merged_dataset", path="output/merged-dataset/")
+    ModelClass(name="Finetuned merged_dataset", path="output/merged-dataset/")
 )  # finetuned with merged dataset
 
 
@@ -234,42 +264,154 @@ def prompt():
             evaulate_answer(set(final_answer), set(solution), None)
         )
 
+    statistics(statistics_correct_voting_table)
+
+
+def statistics(statistics_correct_voting_table):
+    output_data: list[str] = []
+
     # Calculate statistics
     print(" ")
-    print("Statistics:")
+    output_data.append("Statistics:")
     percentage = sum(statistics_correct_voting_table) / len(
         statistics_correct_voting_table
     )
     total_tp = 0
     total_fp = 0
     total_tn = 0
+    total_fn = 0
     for model in models:
         total_tp += model.tp
         total_fp += model.fp
         total_tn += model.tn
-    precision = total_tp / (total_tp + total_fp)
-    recall = total_tp / (total_tp + total_tn)
-    f1_score = 2 * (precision * recall) / (precision + recall)
-    print("Precision:", round(precision, 2))
-    print("Recall:", round(recall, 2))
-    print("F1-Score:", round(f1_score, 2))
+        total_fn += model.fn
+    precision = get_precision(tp=total_tp, fp=total_fp)
+    recall = get_recall(tp=total_tp, fn=total_fn)
+    f1_score = get_f1_score(precision=precision, recall=recall)
+    accuracy = get_accuracy(tp=total_tp, fp=total_fp, tn=total_tn, fn=total_fn)
+    output_data.append("Precision overall: " + str(precision))
+    output_data.append("Recall overall: " + str(recall))
+    output_data.append("Accuracy overall: " + str(accuracy))
+    output_data.append("F1-Score overall: " + str(f1_score))
 
-    print("Average correct emotions:", round(percentage, 2), "%")
-    print(" ")
+    output_data.append("Average correct emotions: " + str(round(percentage, 2)) + "%")
+    output_data.append(" ")
     for model in models:
-        print(f"Model '{model.name}':")
-        print(
-            "Percentage correct:",
-            round(sum(model.percentage_correct) / len(model.percentage_correct), 2),
-            "%",
+        output_data.append(f"Model '{model.name}':")
+        model.percentage_correct_number = sum(model.percentage_correct) / len(
+            model.percentage_correct
         )
-        precision = model.tp / (model.tp + model.fp)
-        recall = model.tp / (model.tp + model.tn)
-        f1_score = 2 * (precision * recall) / (precision + recall)
-        print("Precision:", round(precision, 2))
-        print("Recall:", round(recall, 2))
-        print("F1-Score:", round(f1_score, 2))
-        print(" ")
+        output_data.append(
+            "Percentage correct: "
+            + str(round(model.percentage_correct_number, 2))
+            + "%",
+        )
+        model.precision = get_precision(tp=model.tp, fp=model.fp)
+        model.recall = get_recall(tp=model.tp, fn=model.fn)
+        model.f1_score = get_f1_score(precision=model.precision, recall=model.recall)
+        model.accuracy = get_accuracy(
+            tp=model.tp, fp=model.fp, tn=model.tn, fn=model.fn
+        )
+        output_data.append("Precision:" + str(model.precision))
+        output_data.append("Recall:" + str(model.recall))
+        output_data.append("F1-Score:" + str(model.f1_score))
+        output_data.append("Accuracy:" + str(model.accuracy))
+        output_data.append(" ")
+
+    # Print statistics
+    for line in output_data:
+        print(line)
+
+    # Save statistics to file
+    with open("evaluation_statistics_text.txt", "w") as f:
+        for line in output_data:
+            f.write(str(line) + "\n")
+
+    plt.figure()
+
+    """  bar_width = 0.1
+    distance_between_models = 0.2
+
+    metrics_each = range(5 + 1)
+
+    i = 0
+    for model in models:
+        # plot all the accuracies, nothing else
+        plt.bar(
+            [x + i * (bar_width + distance_between_models) for x in metrics_each],
+            [model.accuracy * 100],
+            width=bar_width,
+            label=model.name,
+        )
+
+        # plot all the f1-scores next to it
+        plt.bar(
+            [x + i * (bar_width + distance_between_models) for x in metrics_each],
+            [model.f1_score * 100],
+            width=bar_width,
+            label=model.name,
+        )
+ """
+
+    model_names = [model.name for model in models]
+    precisions = [model.precision for model in models]
+    recalls = [model.recall for model in models]
+    f1_scores = [model.f1_score for model in models]
+    accuracies = [model.accuracy for model in models]
+
+    x = np.arange(len(model_names))  # the label locations
+    width = 0.15  # the width of the bars
+
+    fig, ax = plt.subplots(figsize=(12, 6))  # adjust figure size for better readability
+
+    # Plot the bars sequentially
+    bar_positions = x
+
+    rects1 = ax.bar(bar_positions, precisions, width, label="Precision")
+    bar_positions = [p + width for p in bar_positions]
+    rects2 = ax.bar(bar_positions, recalls, width, label="Recall")
+    bar_positions = [p + width for p in bar_positions]
+    rects3 = ax.bar(bar_positions, f1_scores, width, label="F1-Score")
+    bar_positions = [p + width for p in bar_positions]
+    rects4 = ax.bar(bar_positions, accuracies, width, label="Accuracy")
+
+    # Add some text for labels, title and custom x-axis tick labels, etc.
+    ax.set_ylabel("Scores")
+    ax.set_title("Model Performance Metrics")
+
+    # Adjust x ticks to be in the middle of the bars.
+    ax.set_xticks([r + 1.5 * width for r in range(len(model_names))], model_names)
+    # ax.set_xticks(x + width*1.5, model_names)
+
+    ax.legend()
+
+    def autolabel(rects):
+        """Attach a text label above each bar in *rects*, displaying its height."""
+        for rect in rects:
+            height = rect.get_height()
+            ax.annotate(
+                "{}".format(height),
+                xy=(rect.get_x() + rect.get_width() / 2, height),
+                xytext=(0, 3),  # 3 points vertical offset
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+            )
+
+    autolabel(rects1)
+    autolabel(rects2)
+    autolabel(rects3)
+    autolabel(rects4)
+
+    # add labels and title
+    plt.xticks(rotation=45)
+
+    plt.legend()
+    plt.ylabel("Percentage")
+    plt.title("Evaluation Statistics")
+    fig = plt.gcf()
+    # save the plot
+    fig.savefig("evaluation_statistics_plot.png")
 
 
 if __name__ == "__main__":
