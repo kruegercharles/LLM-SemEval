@@ -1,16 +1,16 @@
 Statistics:
-Precision overall: 0.46
-Recall overall: 0.38
-Accuracy overall: 0.75
+Precision overall: 0.44
+Recall overall: 0.41
+Accuracy overall: 0.74
 F1-Score overall: 0.42
-Average correct emotions: 43.1%
+Average correct emotions: 44.32%
  
 Model 'RoBERTa base-model':
-Percentage correct: 18.02%
-Precision:0.23
-Recall:0.42
-F1-Score:0.3
-Accuracy:0.53
+Percentage correct: 21.75%
+Precision:0.25
+Recall:0.59
+F1-Score:0.35
+Accuracy:0.48
  
 Model 'Finetuned semeval':
 Percentage correct: 65.73%

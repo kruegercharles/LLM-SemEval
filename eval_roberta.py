@@ -329,35 +329,16 @@ def statistics(statistics_correct_voting_table):
 
     plt.figure()
 
-    """  bar_width = 0.1
-    distance_between_models = 0.2
-
-    metrics_each = range(5 + 1)
-
-    i = 0
-    for model in models:
-        # plot all the accuracies, nothing else
-        plt.bar(
-            [x + i * (bar_width + distance_between_models) for x in metrics_each],
-            [model.accuracy * 100],
-            width=bar_width,
-            label=model.name,
-        )
-
-        # plot all the f1-scores next to it
-        plt.bar(
-            [x + i * (bar_width + distance_between_models) for x in metrics_each],
-            [model.f1_score * 100],
-            width=bar_width,
-            label=model.name,
-        )
- """
-
     model_names = [model.name for model in models]
+    model_names.append("Overall")
     precisions = [model.precision for model in models]
+    precisions.append(precision)
     recalls = [model.recall for model in models]
+    recalls.append(recall)
     f1_scores = [model.f1_score for model in models]
+    f1_scores.append(f1_score)
     accuracies = [model.accuracy for model in models]
+    accuracies.append(accuracy)
 
     x = np.arange(len(model_names))  # the label locations
     width = 0.15  # the width of the bars
@@ -396,6 +377,7 @@ def statistics(statistics_correct_voting_table):
                 textcoords="offset points",
                 ha="center",
                 va="bottom",
+                fontsize=6,
             )
 
     autolabel(rects1)
@@ -409,6 +391,9 @@ def statistics(statistics_correct_voting_table):
     plt.legend()
     plt.ylabel("Percentage")
     plt.title("Evaluation Statistics")
+    plt.tight_layout(rect=[0.0, 0.03, 1, 1])  # Adjust the bottom margin
+    ax.set_ylim(0, 1)
+
     fig = plt.gcf()
     # save the plot
     fig.savefig("evaluation_statistics_plot.png")
