@@ -2,7 +2,7 @@
 #SBATCH --nodes=1
 #SBATCH --mem=48G
 #SBATCH --gres=gpu:1
-#SBATCH --time=14:00:00
+#SBATCH --time=5:00:00
 #SBATCH --output=/home/chkr211d/chkr211d-secretllm/project-sem-eval/mylogs/log-%j.log
 #SBATCH --error=/home/chkr211d/chkr211d-secretllm/project-sem-eval/mylogs/errors-%j.log
 #SBATCH --mail-type=begin,end,fail

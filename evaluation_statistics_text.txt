@@ -1,41 +1,41 @@
 Statistics:
-Precision overall: 0.44
-Recall overall: 0.41
-Accuracy overall: 0.74
-F1-Score overall: 0.42
-Average correct emotions: 44.32%
+Precision overall: 0.39
+Recall overall: 0.37
+Accuracy overall: 0.72
+F1-Score overall: 0.38
+Average correct emotions: 43.46%
  
 Model 'RoBERTa base-model':
-Percentage correct: 21.75%
-Precision:0.25
-Recall:0.59
-F1-Score:0.35
-Accuracy:0.48
+Percentage correct: 15.24%
+Precision:0.18
+Recall:0.43
+F1-Score:0.25
+Accuracy:0.4
  
 Model 'Finetuned semeval':
-Percentage correct: 65.73%
-Precision:0.77
-Recall:0.71
-F1-Score:0.74
-Accuracy:0.88
+Percentage correct: 58.12%
+Precision:0.73
+Recall:0.67
+F1-Score:0.7
+Accuracy:0.87
  
 Model 'Finetuned emotions_data':
-Percentage correct: 31.18%
-Precision:0.45
-Recall:0.26
-F1-Score:0.33
-Accuracy:0.75
+Percentage correct: 27.16%
+Precision:0.4
+Recall:0.23
+F1-Score:0.29
+Accuracy:0.74
  
 Model 'Finetuned dair-ai':
-Percentage correct: 31.68%
-Precision:0.52
-Recall:0.31
-F1-Score:0.39
-Accuracy:0.77
+Percentage correct: 26.08%
+Precision:0.46
+Recall:0.28
+F1-Score:0.35
+Accuracy:0.76
  
 Model 'Finetuned goemotions':
-Percentage correct: 25.0%
-Precision:0.34
+Percentage correct: 23.42%
+Precision:0.33
 Recall:0.19
 F1-Score:0.24
 Accuracy:0.72

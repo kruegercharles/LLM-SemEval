@@ -54,7 +54,7 @@ DATA_SET_PATH = Path("data/merged_data.json")
 
 # Hyperparameters
 LEARNING_RATE: float = 1e-5
-EPOCHS: int = 5
+EPOCHS: int = 10
 BATCH_SIZE: int = 16
 CONTEXT_LENGTH: int = 512
 
@@ -98,7 +98,7 @@ def compute_metrics(eval_pred):
     # logits.to(device)
     predictions = (torch.sigmoid(torch.tensor(logits)) > 0.5).int()
     accuracy = accuracy_score(labels, predictions.numpy())
-    f1 = f1_score(labels, predictions.numpy(), average="macro", zero_division="warn")
+    f1 = f1_score(labels, predictions.numpy(), average="macro", zero_division=0)
     return {"accuracy": accuracy, "f1": f1}
 
 
@@ -136,7 +136,6 @@ def evaluate_metrics(trainer: Trainer):
         + str(best_eval_loss_epoch)
     )
     best.append(best_text_1)
-    print("\n" + best_text_1)
 
     best_text_2 = (
         "Best evaluation accuracy: "
@@ -145,7 +144,6 @@ def evaluate_metrics(trainer: Trainer):
         + str(best_eval_accuracy_epoch)
     )
     best.append(best_text_2)
-    print(best_text_2)
 
     best_text_3 = (
         "Best evaluation f1: "
@@ -154,18 +152,21 @@ def evaluate_metrics(trainer: Trainer):
         + str(best_eval_f1_epoch)
     )
     best.append(best_text_3)
-    print(best_text_3)
+
+    print(" ")
+    for line in best:
+        print(line)
 
     with open(str(OUTPUT_DIR) + "/best.txt", "w") as f:
         f.write("\n".join(best))
 
     # Separate training and evaluation logs
-    training_logs = [log for log in train_logs if "loss" in log]
+    # training_logs = [log for log in train_logs if "loss" in log]
     eval_logs = [log for log in train_logs if "eval_loss" in log]
 
     # Extract training loss and epochs
-    train_losses = [log["loss"] for log in training_logs]
-    train_epochs = [log["epoch"] for log in training_logs]
+    # train_losses = [log["loss"] for log in training_logs]
+    # train_epochs = [log["epoch"] for log in training_logs]
 
     # Extract evaluation metrics and epochs
     eval_epochs = [log["epoch"] for log in eval_logs]
@@ -178,7 +179,7 @@ def evaluate_metrics(trainer: Trainer):
     plt.figure(figsize=(15, 6))
 
     # Plot training loss
-    plt.plot(train_epochs, train_losses, label="Training Loss", color="blue")
+    # plt.plot(train_epochs, train_losses, label="Training Loss", color="blue")
 
     # Plot evaluation metrics (only if there are evaluation logs)
     if eval_logs:
@@ -203,9 +204,13 @@ def evaluate_metrics(trainer: Trainer):
 
     plt.xlabel("Epochs")
     plt.ylabel("Value")
-    plt.title("Training Loss and Validation Metrics Over Time")
+    plt.title("Validation Metrics Over Time")
     plt.legend()
-    plt.xticks(np.arange(min(train_epochs), max(train_epochs) + 1, 1.0))
+
+    # set y-axis limits
+    plt.ylim(0, 1)
+
+    plt.xticks(np.arange(0, EPOCHS + 1, 1))
     plt.grid(True)
     plt.savefig(str(OUTPUT_DIR) + "/metrics_plot.png")
 
@@ -300,6 +305,7 @@ def finetune():
         # lr_scheduler_type="cosine",
         learning_rate=LEARNING_RATE,
         eval_strategy="epoch",
+        eval_delay=0.0,
         optim="adamw_torch",
     )
 
