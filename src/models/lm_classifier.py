@@ -6,7 +6,7 @@ import torch
 
 class RobertaForSequenceClassificationAttentionPooling(nn.Module):
     def __init__(self, backbone, num_classes):
-        super(RobertaForSequenceClassificationMeanPooling, self).__init__()
+        super(RobertaForSequenceClassificationAttentionPooling, self).__init__()
         self.backbone = RobertaModel.from_pretrained(backbone)
         self.attention_pooling = AttentionPooling(self.backbone.hidden_size).to('cuda' if torch.cuda.is_available() else 'cpu')
         self.pre_classifier = nn.Linear(768, 768)
@@ -26,7 +26,7 @@ class RobertaForSequenceClassificationAttentionPooling(nn.Module):
 
 class RobertaForSequenceClassificationMaxPooling(nn.Module):
     def __init__(self, backbone, num_classes):
-        super(RobertaForSequenceClassificationMeanPooling, self).__init__()
+        super(RobertaForSequenceClassificationMaxPooling, self).__init__()
         self.backbone = RobertaModel.from_pretrained(backbone)
         self.pre_classifier = nn.Linear(768, 768)
         self.classifier = nn.Sequential(
@@ -75,7 +75,7 @@ class RobertaForSequenceClassificationMeanPooling(nn.Module):
 
 class RobertaForSequenceClassificationDeep(nn.Module):
     def __init__(self, backbone, num_classes):
-        super(RobertaForSequenceClassification, self).__init__()
+        super(RobertaForSequenceClassificationDeep, self).__init__()
         self.backbone = RobertaModel.from_pretrained(backbone)
         self.pre_classifier = nn.Linear(768, 768)
         self.classifier = nn.Sequential(
