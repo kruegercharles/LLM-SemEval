@@ -7,6 +7,7 @@ import torch
 class RobertaForSequenceClassificationAttentionPooling(nn.Module):
     def __init__(self, backbone, num_classes):
         super(RobertaForSequenceClassificationAttentionPooling, self).__init__()
+        self.name = 'RobertaForSequenceClassificationAttentionPooling'
         self.backbone = RobertaModel.from_pretrained(backbone)
         self.attention_pooling = AttentionPooling(self.backbone.config.hidden_size).to('cuda' if torch.cuda.is_available() else 'cpu')
         self.classifier = nn.Sequential(
@@ -25,6 +26,7 @@ class RobertaForSequenceClassificationAttentionPooling(nn.Module):
 class RobertaForSequenceClassificationMaxPooling(nn.Module):
     def __init__(self, backbone, num_classes):
         super(RobertaForSequenceClassificationMaxPooling, self).__init__()
+        self.name = 'RobertaForSequenceClassificationMaxPooling'
         self.backbone = RobertaModel.from_pretrained(backbone)
         self.classifier = nn.Sequential(
             nn.Linear(768, 768),
@@ -47,6 +49,7 @@ class RobertaForSequenceClassificationMaxPooling(nn.Module):
 class RobertaForSequenceClassificationMeanPooling(nn.Module):
     def __init__(self, backbone, num_classes):
         super(RobertaForSequenceClassificationMeanPooling, self).__init__()
+        self.name = 'RobertaForSequenceClassificationMeanPooling'
         self.backbone = RobertaModel.from_pretrained(backbone)
         self.classifier = nn.Sequential(
             nn.Linear(768, 768),
@@ -70,6 +73,7 @@ class RobertaForSequenceClassificationMeanPooling(nn.Module):
 class RobertaForSequenceClassificationDeep(nn.Module):
     def __init__(self, backbone, num_classes):
         super(RobertaForSequenceClassificationDeep, self).__init__()
+        self.name = 'RobertaForSequenceClassificationDeep'
         self.backbone = RobertaModel.from_pretrained(backbone)
         self.pre_classifier = nn.Linear(768, 768)
         self.classifier = nn.Sequential(
@@ -92,6 +96,7 @@ class RobertaForSequenceClassificationDeep(nn.Module):
 class RobertaForSequenceClassificationPure(nn.Module):
     def __init__(self, backbone, num_classes):
         super(RobertaForSequenceClassificationPure, self).__init__()
+        self.name = 'RobertaForSequenceClassificationPure'
         self.backbone = RobertaModel.from_pretrained(backbone)
         self.classifier = nn.Sequential(
             nn.Linear(768, 768),

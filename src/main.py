@@ -67,7 +67,7 @@ def train(fold, epochs, model, train_loader, val_loader, test_loader, optimizer,
             'loss' : total_train_loss
         }
 
-        torch.save(checkpoint, os.path.join(os.path.dirname(__file__), f'../outputs/models/roberta_fold_{fold}_epoch_{epoch+1}.pth'))
+        torch.save(checkpoint, os.path.join(os.path.dirname(__file__), f'../outputs/models/{model.name}_fold_{fold}_epoch_{epoch+1}.pth'))
 
         # Validation step
         model.eval()
