@@ -21,8 +21,8 @@ class RobertaForSequenceClassificationAttentionPooling(nn.Module):
         cls = cls.last_hidden_state
         cls = self.attention_pooling(cls, attention_mask)
         cls = self.pre_classifier(cls)
-        cls = self.classifier 
-        return 
+        cls = self.classifier(cls)
+        return cls
 
 class RobertaForSequenceClassificationMaxPooling(nn.Module):
     def __init__(self, backbone, num_classes):
@@ -38,10 +38,10 @@ class RobertaForSequenceClassificationMaxPooling(nn.Module):
     def forward(self, input_ids, attention_mask):
         cls = self.backbone(input_ids, attention_mask)
         cls = cls.last_hidden_state
-        cls = self.mean_pooling(cls, attention_mask)
+        cls = self.max_pooling(cls, attention_mask)
         cls = self.pre_classifier(cls)
-        cls = self.classifier 
-        return 
+        cls = self.classifier(cls)
+        return cls
     
     def max_pooling(self, hidden_states, attention_mask):
         mask_exp = attention_mask.unsqueeze(-1).expand(hidden_states.size())
@@ -64,8 +64,8 @@ class RobertaForSequenceClassificationMeanPooling(nn.Module):
         cls = cls.last_hidden_state
         cls = self.mean_pooling(cls, attention_mask)
         cls = self.pre_classifier(cls)
-        cls = self.classifier 
-        return 
+        cls = self.classifier(cls)
+        return cls
     
     def mean_pooling(self, hidden_states, attention_mask):
         mask_exp = attention_mask.unsqueeze(-1).expand(hidden_states.size())
@@ -98,22 +98,20 @@ class RobertaForSequenceClassificationDeep(nn.Module):
         return cls
 
 
-class RobertaForSequenceClassification(nn.Module):
+class RobertaForSequenceClassification1(nn.Module):
     def __init__(self, backbone, num_classes):
-        super(RobertaForSequenceClassification, self).__init__()
+        super(RobertaForSequenceClassification1, self).__init__()
         self.backbone = RobertaModel.from_pretrained(backbone)
-        self.pre_classifier = nn.Linear(768, 768)
+        self.backbone.pooler = None
         self.classifier = nn.Sequential(
-            nn.ReLU(),
-            nn.Dropout(0.3), 
+            nn.Linear(768,768),
+            nn.Dropout(0.1),
             nn.Linear(768, num_classes)
         )
     
     def forward(self, input_ids, attention_mask):
         cls = self.backbone(input_ids, attention_mask)
-        cls = cls.last_hidden_state[:, 0, :]
-        cls = self.pre_classifier(cls)
-        cls = self.classifier(cls)
+        cls = self.classifier(cls.last_hidden_state[:, 0, :])
         return cls
     
 class AttentionPooling(nn.Module):

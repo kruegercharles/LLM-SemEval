@@ -7,7 +7,7 @@ import torch.utils
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import KFold
 import torch.utils.data
-from transformers import RobertaTokenizer
+from transformers import RobertaTokenizer, RobertaForSequenceClassification
 import torch.nn as nn
 import torch.optim as optim
 from omegaconf import DictConfig
@@ -18,7 +18,11 @@ from sklearn.metrics import f1_score
 
 def select_model(name, backbone, num_labels, device):
     if name == 'base':
-        return RobertaForSequenceClassification(backbone, num_labels).to(device=device)
+        return RobertaForSequenceClassification.from_pretrained(
+        'roberta-base',
+        num_labels = 7,
+        problem_type='multi_label_classification',
+    ).to(device)
     elif name == 'deep':
         return RobertaForSequenceClassificationDeep(backbone, num_labels).to(device=device)
     elif name == 'mean':
@@ -44,10 +48,10 @@ def train(fold, epochs, model, train_loader, val_loader, optimizer, criterion, d
         for batch in train_loader:
             input_ids, attention_mask, labels = batch['input_ids'].to(device), batch['attention_mask'].to(device), batch['labels'].to(device)
             optimizer.zero_grad()
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask).logits
             loss = criterion(outputs, labels)
-            print(f'Inputs: {labels}')
-            print(f'Outputs: {outputs}')
+            #print(f'Inputs: {labels}')
+            #print(f'Outputs: {outputs}')
             loss.backward()
             optimizer.step()
             f1 = f1_score(labels.detach().cpu().numpy(), (torch.where(torch.sigmoid(outputs) >=0.5, torch.tensor(1.0), torch.tensor(0.0))).detach().cpu().numpy(), average='macro', zero_division=0.0)
@@ -67,7 +71,7 @@ def train(fold, epochs, model, train_loader, val_loader, optimizer, criterion, d
             'loss' : total_train_loss
         }
 
-        torch.save(checkpoint, os.path.join(os.path.dirname(__file__), f'../outputs/models/roberta_fold_{fold+1}_epoch_{epoch+1}.pth'))
+        torch.save(checkpoint, os.path.join(os.path.dirname(__file__), f'../outputs/models/roberta_fold_{fold}_epoch_{epoch+1}.pth'))
 
         # Validation step
         model.eval()
@@ -78,9 +82,10 @@ def train(fold, epochs, model, train_loader, val_loader, optimizer, criterion, d
             print(f'Start Validation Epoch {epoch+1}.')
             for batch in val_loader:
                 input_ids, attention_mask, labels = batch['input_ids'].to(device), batch['attention_mask'].to(device), batch['labels'].to(device)
-                outputs = model(input_ids=input_ids, attention_mask=attention_mask)
-                print(f'Inputs: {labels}')
-                print(f'Outputs: {outputs}')
+                outputs = model(input_ids=input_ids, attention_mask=attention_mask).logits
+                #print(outputs.logits)
+                #print(f'Inputs: {labels}')
+                #print(f'Outputs: {outputs}')
                 loss = criterion(outputs, labels.float())
                 f1 = f1_score(labels.detach().cpu().numpy(), (torch.where(torch.sigmoid(outputs) >=0.5, torch.tensor(1.0), torch.tensor(0.0))).detach().cpu().numpy(), average='macro', zero_division=0.0)
                 f1_v.append(f1)
@@ -107,9 +112,31 @@ def cross_validation(cfg: DictConfig):
     device = search_available_devices()
     print(f'*** Found the following device: {device}. Start configuting training.')
 
-    dataset = EmotionData(os.path.join(os.path.dirname(__file__), cfg.data), cfg.backbone)
+    '''
+    #######
+    m = RobertaForSequenceClassification.from_pretrained(
+        'roberta-base',
+        num_labels = 7,
+        problem_type='multi_label_classification',
+    ).to(device)
+
+    m1 = RobertaForSequenceClassification1('roberta-base', 7).to(device)
+    print(m)
+    print('##################################################################################################')
+    print(m1)
+    quit()
+
+    #####
+    '''
+
+
+    #dataset = EmotionData(os.path.join(os.path.dirname(__file__), cfg.data), cfg.backbone)
     kfold = KFold(n_splits=5, shuffle=True, random_state=42)
 
+    train_dataset = EmotionData(os.path.join(os.path.dirname(__file__), cfg.data), cfg.backbone)
+    test_dataset = EmotionData(os.path.join(os.path.dirname(__file__), '../data/eng_a_parsed_test.json'), cfg.backbone)
+    
+    '''
     for fold, (train_idx, val_idx) in enumerate(kfold.split(np.arange(len(dataset)))):
         print(f'Starting fold {fold+1}/{5}.')
 
@@ -126,6 +153,16 @@ def cross_validation(cfg: DictConfig):
         criterion = nn.BCEWithLogitsLoss().to(device=device)
 
         train(fold+1, cfg.epochs, model, train_loader, val_loader, optimizer, criterion, device)
+    '''
+    train_loader = DataLoader(train_dataset, batch_size=cfg.batch_size)#, shuffle=True)
+    val_loader = DataLoader(test_dataset, batch_size=cfg.batch_size)
+
+    model = select_model(cfg.model_name, cfg.backbone, cfg.num_labels, device)
+    optimizer = optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=0.1)
+    criterion = nn.BCEWithLogitsLoss().to(device=device)
+
+    train(1, cfg.epochs, model, train_loader, val_loader, optimizer, criterion, device)
+
 
 if __name__ == '__main__':
     cross_validation()
