@@ -1,5 +1,5 @@
-RobertaForSequenceClassification(
-  (roberta): RobertaModel(
+RobertaForSequenceClassification1(
+  (backbone): RobertaModel(
     (embeddings): RobertaEmbeddings(
       (word_embeddings): Embedding(50265, 768, padding_idx=1)
       (position_embeddings): Embedding(514, 768, padding_idx=1)
@@ -35,10 +35,14 @@ RobertaForSequenceClassification(
         )
       )
     )
+    (pooler): RobertaPooler(
+      (dense): Linear(in_features=768, out_features=768, bias=True)
+      (activation): Tanh()
+    )
   )
-  (classifier): RobertaClassificationHead(
-    (dense): Linear(in_features=768, out_features=768, bias=True)
-    (dropout): Dropout(p=0.1, inplace=False)
-    (out_proj): Linear(in_features=768, out_features=7, bias=True)
+  (classifier): Sequential(
+    (0): ReLU()
+    (1): Dropout(p=0.3, inplace=False)
+    (2): Linear(in_features=768, out_features=7, bias=True)
   )
 )
