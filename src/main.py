@@ -11,11 +11,9 @@ from transformers import RobertaTokenizer
 import torch.nn as nn
 import torch.optim as optim
 from omegaconf import DictConfig
-from misc.misc import search_available_devices, plot_losses, statistics_to_csv, count_correct_samples, initialize_weights_xavier
+from misc.misc import search_available_devices, statistics_to_csv, count_correct_samples, init_confusion, init_metrics, accuracy, precision, recall, f1_score
 from data.dataset import EmotionData
 from models.lm_classifier import *
-from sklearn.metrics import f1_score
-from torchviz import make_dot
 
 def select_model(name, backbone, num_labels, device):
     if name == 'base':
@@ -32,32 +30,122 @@ def select_model(name, backbone, num_labels, device):
         raise ValueError('Specified model name is not available!')
 
 
-def train(fold, epochs, model, train_loader, val_loader, test_loader, optimizer, criterion, device):
+def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader, optimizer, criterion, device):
 
-    train_losses, val_losses, train_acc, val_acc, f1_train, f1_val = list(), list(), list(), list(), list(), list()
+    train_losses, val_losses = list(), list()
+
+    stats = {
+        'train' : {
+            'loss': list(),
+            'accuracy' : {
+                'macro' : list(),
+                'micro' : list(),
+            },
+            'precision' : {
+                'macro' : list(),
+                'micro' : list(),
+            },
+            'recall' : {
+                'macro' : list(), 
+                'micro' : list(),
+            },
+            'f1' : {
+                'macro' : list(), 
+                'micro' : list(),
+            }
+        },
+        'val' : {
+            'loss': list(),
+            'accuracy' : {
+                'macro' : list(),
+                'micro' : list(),
+            },
+            'precision' : {
+                'macro' : list(),
+                'micro' : list(),
+            },
+            'recall' : {
+                'macro' : list(), 
+                'micro' : list(),
+            },
+            'f1' : {
+                'macro' : list(), 
+                'micro' : list(),
+            }
+        },
+        'test' : {
+            'loss': 0,
+            'accuracy' : {
+                'macro' : 0,
+                'micro' : 0,
+            },
+            'precision' : {
+                'macro' : 0,
+                'micro' : 0,
+            },
+            'recall' : {
+                'macro' : 0, 
+                'micro' : 0,
+            },
+            'f1' : {
+                'macro' : 0,
+                'micro' : 0,
+            }
+        }
+    }
+
+    confusion = init_confusion()
 
     for epoch in range(epochs):
         print(f'Start Training Epoch {epoch+1}.')
         model.train()
         total_train_loss = 0.0
-        correct_train = 0
-        f1_t = []
         for batch in train_loader:
             input_ids, attention_mask, labels = batch['input_ids'].to(device), batch['attention_mask'].to(device), batch['labels'].to(device)
             optimizer.zero_grad()
             outputs = model(input_ids=input_ids, attention_mask=attention_mask)
-            print(outputs)
+            # convert output to binary format
+            bin_out = torch.where(torch.sigmoid(outputs) >=0.5, torch.tensor(1.0), torch.tensor(0.0))
+            # collect confusion statistics:
+            for i in range(num_labels):
+                for j in range(len(bin_out)):
+                    if bin_out[j][i] == 1.0 and labels[j][i] == 1.0:
+                        confusion[i]['tp'] += 1
+                    elif bin_out[j][i] == 0.0 and labels[j][i] == 0.0:
+                        confusion[i]['tn'] += 1
+                    elif bin_out[j][i] == 1.0 and labels[j][i] == 0.0:
+                        confusion[i]['fp'] += 1
+                    elif bin_out[j][i] == 0.0 and labels[j][i] == 1.0:
+                        confusion[i]['fn'] += 1
+
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-            f1 = f1_score(labels.detach().cpu().numpy(), (torch.where(torch.sigmoid(outputs) >=0.5, torch.tensor(1.0), torch.tensor(0.0))).detach().cpu().numpy(), average='macro', zero_division=0.0)
-            f1_t.append(f1)
-            correct_train += count_correct_samples(outputs, labels) / len(batch['input_ids'])
             total_train_loss += loss.item()
 
         train_losses.append(total_train_loss)
-        train_acc.append(correct_train / len(train_loader))
-        f1_train.append(sum(f1_t) / len(f1_t))
+        # calculate confusion stats in macro and micro strategy manner
+        # macro strategy
+        acc = [accuracy(confusion[i]['tp'], confusion[i]['tn'], confusion[i]['fp'], confusion[i]['fn']) for i in range(num_labels)]
+        prec = [precision(confusion[i]['tp'], confusion['fp']) for i in range(num_labels)]
+        rec = [recall(confusion[i]['tp'], confusion[i]['fn']) for i in range(num_labels)]
+        f1 = [f1_score(confusion[i]['tp'], confusion['fp'], confusion[i]['fn']) for i in range(num_labels)]
+        # insert values in dict
+        stats['train']['accuracy']['macro'].append(sum(acc)/len(acc))
+        stats['train']['precision']['macro'].append(sum(prec)/len(prec))
+        stats['train']['recall']['macro'].append(sum(rec)/len(rec))
+        stats['train']['f1']['macro'].append(sum(f1)/len(f1))
+        # micro strategy
+        tps = sum([confusion[i]['tp'] for i in range(num_labels)])
+        tns = sum([confusion[i]['tn'] for i in range(num_labels)])
+        fps = sum([confusion[i]['fp'] for i in range(num_labels)])
+        fns = sum([confusion[i]['fn'] for i in range(num_labels)])
+        # insert values in dict
+        stats['train']['accuracy']['micro'].append(accuracy(tps, tns, fps, fns))
+        stats['train']['precision']['micro'].append(precision(tps, fps))
+        stats['train']['recall']['micro'].append(recall(tps, fns))
+        stats['train']['f1']['micro'].append(f1_score(tps, fps, fns))
+
 
         # save model checkpoint:
         checkpoint = {
@@ -72,45 +160,108 @@ def train(fold, epochs, model, train_loader, val_loader, test_loader, optimizer,
         # Validation step
         model.eval()
         total_val_loss = 0
-        correct_val = 0
-        f1_v = []
+        confusion = init_confusion()
         with torch.no_grad():
             print(f'Start Validation Epoch {epoch+1}.')
             for batch in val_loader:
                 input_ids, attention_mask, labels = batch['input_ids'].to(device), batch['attention_mask'].to(device), batch['labels'].to(device)
                 outputs = model(input_ids=input_ids, attention_mask=attention_mask)
-                #print(outputs.logits)
-                #print(f'Inputs: {labels}')
-                #print(f'Outputs: {outputs}')
+                # convert output to binary format
+                bin_out = torch.where(torch.sigmoid(outputs) >=0.5, torch.tensor(1.0), torch.tensor(0.0))
+                # collect confusion statistics:
+                for i in range(num_labels):
+                    for j in range(len(bin_out)):
+                        if bin_out[j][i] == 1.0 and labels[j][i] == 1.0:
+                            confusion[i]['tp'] += 1
+                        elif bin_out[j][i] == 0.0 and labels[j][i] == 0.0:
+                            confusion[i]['tn'] += 1
+                        elif bin_out[j][i] == 1.0 and labels[j][i] == 0.0:
+                            confusion[i]['fp'] += 1
+                        elif bin_out[j][i] == 0.0 and labels[j][i] == 1.0:
+                            confusion[i]['fn'] += 1
                 loss = criterion(outputs, labels.float())
-                f1 = f1_score(labels.detach().cpu().numpy(), (torch.where(torch.sigmoid(outputs) >=0.5, torch.tensor(1.0), torch.tensor(0.0))).detach().cpu().numpy(), average='macro', zero_division=0.0)
-                f1_v.append(f1)
-                correct_val += (count_correct_samples(outputs, labels) / len(batch['input_ids']))
                 total_val_loss += loss.item()
+        
+        # calculate confusion stats in macro and micro strategy manner
+        # macro strategy
+        acc = [accuracy(confusion[i]['tp'], confusion[i]['tn'], confusion[i]['fp'], confusion[i]['fn']) for i in range(num_labels)]
+        prec = [precision(confusion[i]['tp'], confusion['fp']) for i in range(num_labels)]
+        rec = [recall(confusion[i]['tp'], confusion[i]['fn']) for i in range(num_labels)]
+        f1 = [f1_score(confusion[i]['tp'], confusion['fp'], confusion[i]['fn']) for i in range(num_labels)]
+        # insert values in dict
+        stats['val']['accuracy']['macro'].append(sum(acc)/len(acc))
+        stats['val']['precision']['macro'].append(sum(prec)/len(prec))
+        stats['val']['recall']['macro'].append(sum(rec)/len(rec))
+        stats['val']['f1']['macro'].append(sum(f1)/len(f1))
+        # micro strategy
+        tps = sum([confusion[i]['tp'] for i in range(num_labels)])
+        tns = sum([confusion[i]['tn'] for i in range(num_labels)])
+        fps = sum([confusion[i]['fp'] for i in range(num_labels)])
+        fns = sum([confusion[i]['fn'] for i in range(num_labels)])
+        # insert values in dict
+        stats['val']['accuracy']['micro'].append(accuracy(tps, tns, fps, fns))
+        stats['val']['precision']['micro'].append(precision(tps, fps))
+        stats['val']['recall']['micro'].append(recall(tps, fns))
+        stats['val']['f1']['micro'].append(f1_score(tps, fps, fns))
 
         print("Predictions: ", torch.where(torch.sigmoid(outputs) >=0.5, torch.tensor(1.0), torch.tensor(0.0)))
         print("Labels: ", labels)
         val_losses.append(total_val_loss)
-        val_acc.append(correct_val / len(val_loader))
-        f1_val.append(sum(f1_v) / len(f1_v))
-        print(f"Epoch {epoch+1}: Train Loss = {train_losses[-1]:.4f}, Validation Loss = {val_losses[-1]:.4f}, Validation Acc. = {val_acc[-1]:.4f}")
+        print(f"Epoch {epoch+1}: Train Loss = {train_losses[-1]:.4f}, Validation Loss = {val_losses[-1]:.4f}")
     
+    # insert loss statistics
+    stats['train']['loss'] = train_losses
+    stats['val']['loss'] = val_losses
     ### Test Model on SemEval Test Dataset ###
     model.eval()
+    confusion = init_confusion()
+    total_test_loss = 0
     with torch.no_grad():
         print(f'Start Testing on Test Dataset!')
         for batch in test_loader:
             input_ids, attention_mask, labels = batch['input_ids'].to(device), batch['attention_mask'].to(device), batch['labels'].to(device)
             outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+            # convert output to binary format
+            bin_out = torch.where(torch.sigmoid(outputs) >=0.5, torch.tensor(1.0), torch.tensor(0.0))
+            # collect confusion statistics:
+            for i in range(num_labels):
+                for j in range(len(bin_out)):
+                    if bin_out[j][i] == 1.0 and labels[j][i] == 1.0:
+                        confusion[i]['tp'] += 1
+                    elif bin_out[j][i] == 0.0 and labels[j][i] == 0.0:
+                        confusion[i]['tn'] += 1
+                    elif bin_out[j][i] == 1.0 and labels[j][i] == 0.0:
+                        confusion[i]['fp'] += 1
+                    elif bin_out[j][i] == 0.0 and labels[j][i] == 1.0:
+                        confusion[i]['fn'] += 1
             loss = criterion(outputs, labels.float())
+            total_test_loss += loss.item()
 
+    stats['test']['loss'] = total_test_loss
+    # calculate confusion stats in macro and micro strategy manner
+    # macro strategy
+    acc = [accuracy(confusion[i]['tp'], confusion[i]['tn'], confusion[i]['fp'], confusion[i]['fn']) for i in range(num_labels)]
+    prec = [precision(confusion[i]['tp'], confusion['fp']) for i in range(num_labels)]
+    rec = [recall(confusion[i]['tp'], confusion[i]['fn']) for i in range(num_labels)]
+    f1 = [f1_score(confusion[i]['tp'], confusion['fp'], confusion[i]['fn']) for i in range(num_labels)]
+    # insert values in dict
+    stats['test']['accuracy']['macro'] = sum(acc)/len(acc)
+    stats['test']['precision']['macro'] = sum(prec)/len(prec)
+    stats['test']['recall']['macro'] = sum(rec)/len(rec)
+    stats['test']['f1']['macro'] = sum(f1)/len(f1)
+    # micro strategy
+    tps = sum([confusion[i]['tp'] for i in range(num_labels)])
+    tns = sum([confusion[i]['tn'] for i in range(num_labels)])
+    fps = sum([confusion[i]['fp'] for i in range(num_labels)])
+    fns = sum([confusion[i]['fn'] for i in range(num_labels)])
+    # insert values in dict
+    stats['test']['accuracy']['micro'] = accuracy(tps, tns, fps, fns)
+    stats['test']['precision']['micro'] = precision(tps, fps)
+    stats['test']['recall']['micro'] = recall(tps, fns)
+    stats['test']['f1']['micro'] = f1_score(tps, fps, fns)   
 
-    statistics_to_csv(os.path.join(os.path.dirname(__file__), f'../outputs/statistics/train_loss_fold_{fold}.csv'), train_losses)
-    statistics_to_csv(os.path.join(os.path.dirname(__file__), f'../outputs/statistics/validation_loss_fold_{fold}.csv'), val_losses)
-    statistics_to_csv(os.path.join(os.path.dirname(__file__), f'../outputs/statistics/train_acc_fold_{fold}.csv'), train_acc)
-    statistics_to_csv(os.path.join(os.path.dirname(__file__), f'../outputs/statistics/validation_acc_fold_{fold}.csv'), val_acc)
-    statistics_to_csv(os.path.join(os.path.dirname(__file__), f'../outputs/statistics/train_f1_fold_{fold}.csv'), f1_train)
-    statistics_to_csv(os.path.join(os.path.dirname(__file__), f'../outputs/statistics/validation_f1_fold_{fold}.csv'), f1_val)
+    with open(os.path.join(os.path.dirname(__file__), f'../outputs/statistics/{model.name}_stats.json'), 'w') as file:
+        json.dump(stats, file, indent=4)
 
 @hydra.main(config_path='../configs', config_name='train_roberta')
 def cross_validation(cfg: DictConfig):
@@ -141,7 +292,7 @@ def cross_validation(cfg: DictConfig):
         optimizer = optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=0.1)
         criterion = nn.BCEWithLogitsLoss().to(device=device)
 
-        train(fold+1, cfg.epochs, model, train_loader, val_loader, test_loader, optimizer, criterion, device)
+        train(fold+1, cfg.epochs, cfg.num_labels, model, train_loader, val_loader, test_loader, optimizer, criterion, device)
 
 if __name__ == '__main__':
     cross_validation()

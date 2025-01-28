@@ -34,3 +34,62 @@ def initialize_weights_xavier(layer):
 
 def count_correct_samples(pred : torch.tensor, labels : torch.tensor, threshold=0.5):
     return (((torch.sigmoid(pred) > threshold) == labels).all(dim=1)).sum().item()
+
+def init_confusion():
+    confusion = {
+        0 : {
+            'tp' : 0,
+            'tn' : 0,
+            'fp' : 0,
+            'fn' : 0,
+        },
+        1 : {
+            'tp' : 0,
+            'tn' : 0,
+            'fp' : 0,
+            'fn' : 0,
+        },
+        2 : {
+            'tp' : 0,
+            'tn' : 0,
+            'fp' : 0,
+            'fn' : 0,
+        },
+        3 : {
+            'tp' : 0,
+            'tn' : 0,
+            'fp' : 0,
+            'fn' : 0,
+        },
+        4 : {
+            'tp' : 0,
+            'tn' : 0,
+            'fp' : 0,
+            'fn' : 0,
+        },
+        5 : {
+            'tp' : 0,
+            'tn' : 0,
+            'fp' : 0,
+            'fn' : 0,
+        },
+        6 : {
+            'tp' : 0,
+            'tn' : 0,
+            'fp' : 0,
+            'fn' : 0,
+        },
+    }
+    return confusion
+
+def accuracy(tp, tn, fp, fn):
+    return (tp+tn)/(tp+tn+fp+fn)
+
+def precision(tp, fp):
+    return tp/(tp+fp)
+
+def recall(tp, fn):
+    return tp/(tp+fn)
+
+def f1_score(tp, fp, fn):
+    return 2*((precision(tp, fp)*recall(tp, fn))/(precision(tp, fp)+recall(tp, fn)))
