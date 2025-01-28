@@ -32,7 +32,7 @@ def select_model(name, backbone, num_labels, device):
 
 def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader, optimizer, criterion, device):
 
-    train_losses, val_losses = list(), list()
+    train_losses, val_losses, test_losses = list(), list(), list()
 
     stats = {
         'train' : {
@@ -74,22 +74,22 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
             }
         },
         'test' : {
-            'loss': 0,
+            'loss': list(),
             'accuracy' : {
-                'macro' : 0,
-                'micro' : 0,
+                'macro' : list(),
+                'micro' : list(),
             },
             'precision' : {
-                'macro' : 0,
-                'micro' : 0,
+                'macro' : list(),
+                'micro' : list(),
             },
             'recall' : {
-                'macro' : 0, 
-                'micro' : 0,
+                'macro' : list(), 
+                'micro' : list(),
             },
             'f1' : {
-                'macro' : 0,
-                'micro' : 0,
+                'macro' : list(), 
+                'micro' : list(),
             }
         }
     }
@@ -209,56 +209,59 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
         val_losses.append(total_val_loss)
         print(f"Epoch {epoch+1}: Train Loss = {train_losses[-1]:.4f}, Validation Loss = {val_losses[-1]:.4f}")
     
+   
+        ### Test Model on SemEval Test Dataset ###
+        model.eval()
+        confusion = init_confusion()
+        total_test_loss = 0
+        with torch.no_grad():
+            print(f'Start Testing on Test Dataset!')
+            for batch in test_loader:
+                input_ids, attention_mask, labels = batch['input_ids'].to(device), batch['attention_mask'].to(device), batch['labels'].to(device)
+                outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+                # convert output to binary format
+                bin_out = torch.where(torch.sigmoid(outputs) >=0.5, torch.tensor(1.0), torch.tensor(0.0))
+                # collect confusion statistics:
+                for i in range(num_labels):
+                    for j in range(len(bin_out)):
+                        if bin_out[j][i] == 1.0 and labels[j][i] == 1.0:
+                            confusion[i]['tp'] += 1
+                        elif bin_out[j][i] == 0.0 and labels[j][i] == 0.0:
+                            confusion[i]['tn'] += 1
+                        elif bin_out[j][i] == 1.0 and labels[j][i] == 0.0:
+                            confusion[i]['fp'] += 1
+                        elif bin_out[j][i] == 0.0 and labels[j][i] == 1.0:
+                            confusion[i]['fn'] += 1
+                loss = criterion(outputs, labels.float())
+                total_test_loss += loss.item()
+
+        test_losses.append(total_test_loss)
+        # calculate confusion stats in macro and micro strategy manner
+        # macro strategy
+        acc = [accuracy(confusion[i]['tp'], confusion[i]['tn'], confusion[i]['fp'], confusion[i]['fn']) for i in range(num_labels)]
+        prec = [precision(confusion[i]['tp'], confusion[i]['fp']) for i in range(num_labels)]
+        rec = [recall(confusion[i]['tp'], confusion[i]['fn']) for i in range(num_labels)]
+        f1 = [f1_score(confusion[i]['tp'], confusion[i]['fp'], confusion[i]['fn']) for i in range(num_labels)]
+        # insert values in dict
+        stats['test']['accuracy']['macro'].append(sum(acc)/len(acc))
+        stats['test']['precision']['macro'].append(sum(prec)/len(prec))
+        stats['test']['recall']['macro'].append(sum(rec)/len(rec))
+        stats['test']['f1']['macro'].append(sum(f1)/len(f1))
+        # micro strategy
+        tps = sum([confusion[i]['tp'] for i in range(num_labels)])
+        tns = sum([confusion[i]['tn'] for i in range(num_labels)])
+        fps = sum([confusion[i]['fp'] for i in range(num_labels)])
+        fns = sum([confusion[i]['fn'] for i in range(num_labels)])
+        # insert values in dict
+        stats['test']['accuracy']['micro'].append(accuracy(tps, tns, fps, fns))
+        stats['test']['precision']['micro'].append(precision(tps, fps))
+        stats['test']['recall']['micro'].append(recall(tps, fns))
+        stats['test']['f1']['micro'].append(f1_score(tps, fps, fns))   
+
     # insert loss statistics
     stats['train']['loss'] = train_losses
     stats['val']['loss'] = val_losses
-    ### Test Model on SemEval Test Dataset ###
-    model.eval()
-    confusion = init_confusion()
-    total_test_loss = 0
-    with torch.no_grad():
-        print(f'Start Testing on Test Dataset!')
-        for batch in test_loader:
-            input_ids, attention_mask, labels = batch['input_ids'].to(device), batch['attention_mask'].to(device), batch['labels'].to(device)
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
-            # convert output to binary format
-            bin_out = torch.where(torch.sigmoid(outputs) >=0.5, torch.tensor(1.0), torch.tensor(0.0))
-            # collect confusion statistics:
-            for i in range(num_labels):
-                for j in range(len(bin_out)):
-                    if bin_out[j][i] == 1.0 and labels[j][i] == 1.0:
-                        confusion[i]['tp'] += 1
-                    elif bin_out[j][i] == 0.0 and labels[j][i] == 0.0:
-                        confusion[i]['tn'] += 1
-                    elif bin_out[j][i] == 1.0 and labels[j][i] == 0.0:
-                        confusion[i]['fp'] += 1
-                    elif bin_out[j][i] == 0.0 and labels[j][i] == 1.0:
-                        confusion[i]['fn'] += 1
-            loss = criterion(outputs, labels.float())
-            total_test_loss += loss.item()
-
-    stats['test']['loss'] = total_test_loss
-    # calculate confusion stats in macro and micro strategy manner
-    # macro strategy
-    acc = [accuracy(confusion[i]['tp'], confusion[i]['tn'], confusion[i]['fp'], confusion[i]['fn']) for i in range(num_labels)]
-    prec = [precision(confusion[i]['tp'], confusion[i]['fp']) for i in range(num_labels)]
-    rec = [recall(confusion[i]['tp'], confusion[i]['fn']) for i in range(num_labels)]
-    f1 = [f1_score(confusion[i]['tp'], confusion[i]['fp'], confusion[i]['fn']) for i in range(num_labels)]
-    # insert values in dict
-    stats['test']['accuracy']['macro'] = sum(acc)/len(acc)
-    stats['test']['precision']['macro'] = sum(prec)/len(prec)
-    stats['test']['recall']['macro'] = sum(rec)/len(rec)
-    stats['test']['f1']['macro'] = sum(f1)/len(f1)
-    # micro strategy
-    tps = sum([confusion[i]['tp'] for i in range(num_labels)])
-    tns = sum([confusion[i]['tn'] for i in range(num_labels)])
-    fps = sum([confusion[i]['fp'] for i in range(num_labels)])
-    fns = sum([confusion[i]['fn'] for i in range(num_labels)])
-    # insert values in dict
-    stats['test']['accuracy']['micro'] = accuracy(tps, tns, fps, fns)
-    stats['test']['precision']['micro'] = precision(tps, fps)
-    stats['test']['recall']['micro'] = recall(tps, fns)
-    stats['test']['f1']['micro'] = f1_score(tps, fps, fns)   
+    stats['test']['loss'] = test_losses
 
     with open(os.path.join(os.path.dirname(__file__), f'../outputs/statistics/{model.name}_fold_{fold}_stats.json'), 'w') as file:
         json.dump(stats, file, indent=4)
