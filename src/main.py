@@ -11,7 +11,7 @@ from transformers import RobertaTokenizer
 import torch.nn as nn
 import torch.optim as optim
 from omegaconf import DictConfig
-from misc.misc import search_available_devices, statistics_to_csv, count_correct_samples, init_confusion, init_metrics, accuracy, precision, recall, f1_score
+from misc.misc import search_available_devices, statistics_to_csv, count_correct_samples, init_confusion, accuracy, precision, recall, f1_score
 from data.dataset import EmotionData
 from models.lm_classifier import *
 
@@ -127,9 +127,9 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
         # calculate confusion stats in macro and micro strategy manner
         # macro strategy
         acc = [accuracy(confusion[i]['tp'], confusion[i]['tn'], confusion[i]['fp'], confusion[i]['fn']) for i in range(num_labels)]
-        prec = [precision(confusion[i]['tp'], confusion['fp']) for i in range(num_labels)]
+        prec = [precision(confusion[i]['tp'], confusion[i]['fp']) for i in range(num_labels)]
         rec = [recall(confusion[i]['tp'], confusion[i]['fn']) for i in range(num_labels)]
-        f1 = [f1_score(confusion[i]['tp'], confusion['fp'], confusion[i]['fn']) for i in range(num_labels)]
+        f1 = [f1_score(confusion[i]['tp'], confusion[i]['fp'], confusion[i]['fn']) for i in range(num_labels)]
         # insert values in dict
         stats['train']['accuracy']['macro'].append(sum(acc)/len(acc))
         stats['train']['precision']['macro'].append(sum(prec)/len(prec))
@@ -185,9 +185,9 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
         # calculate confusion stats in macro and micro strategy manner
         # macro strategy
         acc = [accuracy(confusion[i]['tp'], confusion[i]['tn'], confusion[i]['fp'], confusion[i]['fn']) for i in range(num_labels)]
-        prec = [precision(confusion[i]['tp'], confusion['fp']) for i in range(num_labels)]
+        prec = [precision(confusion[i]['tp'], confusion[i]['fp']) for i in range(num_labels)]
         rec = [recall(confusion[i]['tp'], confusion[i]['fn']) for i in range(num_labels)]
-        f1 = [f1_score(confusion[i]['tp'], confusion['fp'], confusion[i]['fn']) for i in range(num_labels)]
+        f1 = [f1_score(confusion[i]['tp'], confusion[i]['fp'], confusion[i]['fn']) for i in range(num_labels)]
         # insert values in dict
         stats['val']['accuracy']['macro'].append(sum(acc)/len(acc))
         stats['val']['precision']['macro'].append(sum(prec)/len(prec))
@@ -241,9 +241,9 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
     # calculate confusion stats in macro and micro strategy manner
     # macro strategy
     acc = [accuracy(confusion[i]['tp'], confusion[i]['tn'], confusion[i]['fp'], confusion[i]['fn']) for i in range(num_labels)]
-    prec = [precision(confusion[i]['tp'], confusion['fp']) for i in range(num_labels)]
+    prec = [precision(confusion[i]['tp'], confusion[i]['fp']) for i in range(num_labels)]
     rec = [recall(confusion[i]['tp'], confusion[i]['fn']) for i in range(num_labels)]
-    f1 = [f1_score(confusion[i]['tp'], confusion['fp'], confusion[i]['fn']) for i in range(num_labels)]
+    f1 = [f1_score(confusion[i]['tp'], confusion[i]['fp'], confusion[i]['fn']) for i in range(num_labels)]
     # insert values in dict
     stats['test']['accuracy']['macro'] = sum(acc)/len(acc)
     stats['test']['precision']['macro'] = sum(prec)/len(prec)
@@ -260,7 +260,7 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
     stats['test']['recall']['micro'] = recall(tps, fns)
     stats['test']['f1']['micro'] = f1_score(tps, fps, fns)   
 
-    with open(os.path.join(os.path.dirname(__file__), f'../outputs/statistics/{model.name}_stats.json'), 'w') as file:
+    with open(os.path.join(os.path.dirname(__file__), f'../outputs/statistics/{model.name}_fold_{fold}_stats.json'), 'w') as file:
         json.dump(stats, file, indent=4)
 
 @hydra.main(config_path='../configs', config_name='train_roberta')

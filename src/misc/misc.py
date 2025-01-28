@@ -86,10 +86,19 @@ def accuracy(tp, tn, fp, fn):
     return (tp+tn)/(tp+tn+fp+fn)
 
 def precision(tp, fp):
-    return tp/(tp+fp)
+    if tp + fp == 0:
+        return 0
+    else:
+        return tp/(tp+fp)
 
 def recall(tp, fn):
-    return tp/(tp+fn)
+    if tp + fn == 0:
+        return 0
+    else:
+        return tp/(tp+fn)
 
 def f1_score(tp, fp, fn):
-    return 2*((precision(tp, fp)*recall(tp, fn))/(precision(tp, fp)+recall(tp, fn)))
+    if (precision(tp, fp)+recall(tp, fn)) == 0:
+        return 0
+    else:
+        return 2*((precision(tp, fp)*recall(tp, fn))/(precision(tp, fp)+recall(tp, fn)))
