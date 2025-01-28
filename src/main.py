@@ -306,6 +306,4 @@ if __name__ == '__main__':
     config_file = args.config
     
     cfg = OmegaConf.load(os.path.join(os.path.dirname(__file__), f'../configs/{config_file}'))
-    print(cfg.batch_size)
-    quit()
     cross_validation(cfg)
