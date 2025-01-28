@@ -1,0 +1,7 @@
+model_name : base
+backbone: 'roberta-base'
+data: '../data/eng_a_parsed.json'
+num_labels: 7
+lr: 1e-5
+epochs: 8
+batch_size: 16

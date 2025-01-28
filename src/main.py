@@ -1,5 +1,5 @@
 import torch
-import hydra
+import argparse
 import json
 import numpy as np
 import os
@@ -10,7 +10,7 @@ import torch.utils.data
 from transformers import RobertaTokenizer
 import torch.nn as nn
 import torch.optim as optim
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from misc.misc import search_available_devices, statistics_to_csv, count_correct_samples, init_confusion, accuracy, precision, recall, f1_score
 from data.dataset import EmotionData
 from models.lm_classifier import *
@@ -266,7 +266,6 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
     with open(os.path.join(os.path.dirname(__file__), f'../outputs/statistics/{model.name}_fold_{fold}_stats.json'), 'w') as file:
         json.dump(stats, file, indent=4)
 
-@hydra.main(config_path='../configs', config_name='train_roberta')
 def cross_validation(cfg: DictConfig):
     #search for available devices
     device = search_available_devices()
@@ -298,4 +297,15 @@ def cross_validation(cfg: DictConfig):
         train(fold+1, cfg.epochs, cfg.num_labels, model, train_loader, val_loader, test_loader, optimizer, criterion, device)
 
 if __name__ == '__main__':
-    cross_validation()
+    # init parser
+    parser = argparse.ArgumentParser(description="Load a YAML configuration file.")
+    parser.add_argument('config', type=str, help='Path to the YAML configuration file')
+    # parse arguments
+    args = parser.parse_args()
+    # Access the config file path
+    config_file = args.config
+    
+    cfg = OmegaConf.load(os.path.join(os.path.dirname(__file__), f'../configs/{config_file}'))
+    print(cfg.batch_size)
+    quit()
+    cross_validation(cfg)
