@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn 
 import matplotlib.pyplot as plt
+import os
 import csv
+import json
 
 
 def search_available_devices():
@@ -102,3 +104,42 @@ def f1_score(tp, fp, fn):
         return 0
     else:
         return 2*((precision(tp, fp)*recall(tp, fn))/(precision(tp, fp)+recall(tp, fn)))
+    
+def class_weights(idx):
+
+    label_mapping = {
+            'anger' : 0,
+            'fear' : 1,
+            'joy' : 2,
+            'sadness' : 3, 
+            'surprise' : 4, 
+            'none' : 5
+        } 
+
+    # load json
+    with open(os.path.join(os.path.dirname(__file__), '../../data/eng_a_parsed.json')) as file:
+        data = json.load(file)
+    
+    labels = []
+    for entry in data:
+        binary_labels = [0] * len(label_mapping)
+        for label in entry['emotions']:
+            if label in label_mapping:
+                binary_labels[label_mapping[label]] = 1
+        labels.append(binary_labels)
+    labels = torch.tensor(labels)
+    labels = labels[idx]
+    
+    class_counts = labels.sum(dim=0).float()
+    print(class_counts)
+    class_weights = 1.0 / (class_counts + 1e-6)
+    print(class_weights)
+    class_weights /= class_weights.sum()
+    print(class_weights)
+    sample_weights = (labels * class_weights).sum(dim=1)
+    sample_weights = sample_weights.numpy()
+    print(sample_weights)
+    return sample_weights
+
+if __name__=='__main__':
+    class_weights()

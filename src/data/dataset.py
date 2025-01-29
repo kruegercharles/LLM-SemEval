@@ -15,8 +15,7 @@ class EmotionData(Dataset):
             'joy' : 2,
             'sadness' : 3, 
             'surprise' : 4, 
-            'disgust' : 5,
-            'none' : 6
+            'none' : 5
         } 
         self.max_length = max_length
     

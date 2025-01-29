@@ -4,14 +4,14 @@ import json
 import numpy as np
 import os
 import torch.utils
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 from sklearn.model_selection import KFold
 import torch.utils.data
 from transformers import RobertaTokenizer
 import torch.nn as nn
 import torch.optim as optim
 from omegaconf import DictConfig, OmegaConf
-from misc.misc import search_available_devices, statistics_to_csv, count_correct_samples, init_confusion, accuracy, precision, recall, f1_score
+from misc.misc import search_available_devices, statistics_to_csv, count_correct_samples, init_confusion, accuracy, precision, recall, f1_score, class_weights
 from data.dataset import EmotionData
 from models.lm_classifier import *
 
@@ -281,12 +281,15 @@ def cross_validation(cfg: DictConfig):
     for fold, (train_idx, val_idx) in enumerate(kfold.split(np.arange(len(dataset)))):
         print(f'Starting fold {fold+1}/{5}.')
 
+        sample_weights = class_weights(train_idx)
+        sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(sample_weights), replacement=True)
+
         # create train and validation datasets
         train_set = torch.utils.data.Subset(dataset, train_idx)
         val_set = torch.utils.data.Subset(dataset, val_idx)
 
         # create dataloaders 
-        train_loader = DataLoader(train_set, batch_size=cfg.batch_size, shuffle=True)
+        train_loader = DataLoader(train_set, batch_size=cfg.batch_size, sampler=sampler)
         val_loader = DataLoader(val_set, batch_size=cfg.batch_size)
         test_loader = DataLoader(test_dataset, batch_size=cfg.batch_size)
 
