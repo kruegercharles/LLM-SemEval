@@ -212,9 +212,9 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
         # weighted strategy
         support = [(confusion[i]['tp'] + confusion[i]['fn']) for i in range(num_labels)]
         # insert values in dict
-        stats['val']['precision']['weighted'].append(sum([precision(tps[i], fps[i])*support[i] for i in range(num_labels)])/sum(support))
-        stats['val']['recall']['weighted'].append(sum([recall(tps[i], fns[i])*support[i] for i in range(num_labels)])/sum(support))
-        stats['val']['f1']['weighted'].append(sum([f1_score(tps[i], fps[i], fns[i])*support[i] for i in range(num_labels)])/sum(support))
+        stats['val']['precision']['weighted'].append(sum([precision(confusion[i]['tp'], confusion[i]['fp'])*support[i] for i in range(num_labels)])/sum(support))
+        stats['val']['recall']['weighted'].append(sum([recall(confusion[i]['tp'], confusion[i]['fn'])*support[i] for i in range(num_labels)])/sum(support))
+        stats['val']['f1']['weighted'].append(sum([f1_score(confusion[i]['tp'], confusion[i]['fp'], confusion[i]['fn'])*support[i] for i in range(num_labels)])/sum(support))
 
 
         print("Predictions: ", torch.where(torch.sigmoid(outputs) >=0.5, torch.tensor(1.0), torch.tensor(0.0)))
@@ -273,9 +273,9 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
         # weighted strategy
         support = [(confusion[i]['tp'] + confusion[i]['fn']) for i in range(num_labels)]
         # insert values in dict
-        stats['test']['precision']['weighted'].append(sum([precision(tps[i], fps[i])*support[i] for i in range(num_labels)])/sum(support))
-        stats['test']['recall']['weighted'].append(sum([recall(tps[i], fns[i])*support[i] for i in range(num_labels)])/sum(support))
-        stats['test']['f1']['weighted'].append(sum([f1_score(tps[i], fps[i], fns[i])*support[i] for i in range(num_labels)])/sum(support))
+        stats['test']['precision']['weighted'].append(sum([precision(confusion[i]['tp'], confusion[i]['fp'])*support[i] for i in range(num_labels)])/sum(support))
+        stats['test']['recall']['weighted'].append(sum([recall(confusion[i]['tp'], confusion[i]['fn'])*support[i] for i in range(num_labels)])/sum(support))
+        stats['test']['f1']['weighted'].append(sum([f1_score(confusion[i]['tp'], confusion[i]['fp'], confusion[i]['fn'])*support[i] for i in range(num_labels)])/sum(support))
 
     # insert loss statistics
     stats['train']['loss'] = train_losses
