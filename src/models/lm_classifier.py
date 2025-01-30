@@ -81,9 +81,7 @@ class RobertaForSequenceClassificationDeep(nn.Module):
             nn.Dropout(0.1), 
             nn.Linear(768, 256),
             nn.ReLU(),
-            nn.Dropout(0.1),
             nn.Linear(256, 64),
-            nn.ReLU(),
             nn.Linear(64, num_classes)
         )
     

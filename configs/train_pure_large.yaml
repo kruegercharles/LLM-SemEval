@@ -1,0 +1,12 @@
+model_name : pure
+backbone: 'roberta-base'
+data: '../data/merged_data.json'
+model_path: '../outputs/models/task_a/large/pure'
+stat_path: '../outputs/statistics/task_a/large/pure'
+test: 'a'
+weighted: False
+mapping: full
+num_labels: 7
+lr: 1e-5
+epochs: 8
+batch_size: 32

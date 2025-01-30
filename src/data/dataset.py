@@ -5,18 +5,29 @@ from transformers import RobertaTokenizer
 
 class EmotionData(Dataset):
 
-    def __init__(self, file_path, model, max_length=512):
+    def __init__(self, file_path, model, mapping, max_length=512):
 
         self.data = self._load_json(file_path)
         self.tokenizer = RobertaTokenizer.from_pretrained(model)
-        self.label_mapping = {
-            'anger' : 0,
-            'fear' : 1,
-            'joy' : 2,
-            'sadness' : 3, 
-            'surprise' : 4, 
-            'none' : 5
-        } 
+        if mapping == 'full':  
+            self.label_mapping = {
+                'anger' : 0,
+                'fear' : 1,
+                'joy' : 2,
+                'sadness' : 3, 
+                'surprise' : 4,
+                'disgust' : 5, 
+                'none' : 6
+            }
+        else:
+            self.label_mapping = {
+                'anger' : 0,
+                'fear' : 1,
+                'joy' : 2,
+                'sadness' : 3, 
+                'surprise' : 4,
+                'none' : 5, 
+            }
         self.max_length = max_length
     
 

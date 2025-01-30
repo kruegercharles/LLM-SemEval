@@ -11,12 +11,12 @@ from transformers import RobertaTokenizer
 import torch.nn as nn
 import torch.optim as optim
 from omegaconf import DictConfig, OmegaConf
-from misc.misc import search_available_devices, statistics_to_csv, count_correct_samples, init_confusion, accuracy, precision, recall, f1_score, class_weights
+from misc.misc import search_available_devices, init_confusion, accuracy, precision, recall, f1_score, class_weights
 from data.dataset import EmotionData
 from models.lm_classifier import *
 
 def select_model(name, backbone, num_labels, device):
-    if name == 'base':
+    if name == 'pure':
         return RobertaForSequenceClassificationPure(backbone, num_labels).to(device=device)
     elif name == 'deep':
         return RobertaForSequenceClassificationDeep(backbone, num_labels).to(device=device)
@@ -30,7 +30,7 @@ def select_model(name, backbone, num_labels, device):
         raise ValueError('Specified model name is not available!')
 
 
-def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader, optimizer, criterion, device):
+def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader, optimizer, criterion, device, model_path, stat_path):
 
     train_losses, val_losses, test_losses = list(), list(), list()
 
@@ -63,14 +63,17 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
             'precision' : {
                 'macro' : list(),
                 'micro' : list(),
+                'weighted' : list()
             },
             'recall' : {
                 'macro' : list(), 
                 'micro' : list(),
+                'weighted' : list(),
             },
             'f1' : {
                 'macro' : list(), 
                 'micro' : list(),
+                'weighted' : list(),
             }
         },
         'test' : {
@@ -82,14 +85,17 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
             'precision' : {
                 'macro' : list(),
                 'micro' : list(),
+                'weighted' : list(),
             },
             'recall' : {
                 'macro' : list(), 
                 'micro' : list(),
+                'weighted' : list(),
             },
             'f1' : {
                 'macro' : list(), 
                 'micro' : list(),
+                'weighted' : list(),
             }
         }
     }
@@ -155,7 +161,7 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
             'loss' : total_train_loss
         }
 
-        torch.save(checkpoint, os.path.join(os.path.dirname(__file__), f'../outputs/models/{model.name}_fold_{fold}_epoch_{epoch+1}.pth'))
+        torch.save(checkpoint, os.path.join(os.path.dirname(__file__), f'{model_path}/{model.name}_fold_{fold}_epoch_{epoch+1}.pth'))
 
         # Validation step
         model.eval()
@@ -203,6 +209,13 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
         stats['val']['precision']['micro'].append(precision(tps, fps))
         stats['val']['recall']['micro'].append(recall(tps, fns))
         stats['val']['f1']['micro'].append(f1_score(tps, fps, fns))
+        # weighted strategy
+        support = [(confusion[i]['tp'] + confusion[i]['fn']) for i in range(num_labels)]
+        # insert values in dict
+        stats['val']['precision']['weighted'].append(sum([precision(tps[i], fps[i])*support[i] for i in range(num_labels)])/sum(support))
+        stats['val']['recall']['weighted'].append(sum([recall(tps[i], fns[i])*support[i] for i in range(num_labels)])/sum(support))
+        stats['val']['f1']['weighted'].append(sum([f1_score(tps[i], fps[i], fns[i])*support[i] for i in range(num_labels)])/sum(support))
+
 
         print("Predictions: ", torch.where(torch.sigmoid(outputs) >=0.5, torch.tensor(1.0), torch.tensor(0.0)))
         print("Labels: ", labels)
@@ -257,13 +270,19 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
         stats['test']['precision']['micro'].append(precision(tps, fps))
         stats['test']['recall']['micro'].append(recall(tps, fns))
         stats['test']['f1']['micro'].append(f1_score(tps, fps, fns))   
+        # weighted strategy
+        support = [(confusion[i]['tp'] + confusion[i]['fn']) for i in range(num_labels)]
+        # insert values in dict
+        stats['test']['precision']['weighted'].append(sum([precision(tps[i], fps[i])*support[i] for i in range(num_labels)])/sum(support))
+        stats['test']['recall']['weighted'].append(sum([recall(tps[i], fns[i])*support[i] for i in range(num_labels)])/sum(support))
+        stats['test']['f1']['weighted'].append(sum([f1_score(tps[i], fps[i], fns[i])*support[i] for i in range(num_labels)])/sum(support))
 
     # insert loss statistics
     stats['train']['loss'] = train_losses
     stats['val']['loss'] = val_losses
     stats['test']['loss'] = test_losses
 
-    with open(os.path.join(os.path.dirname(__file__), f'../outputs/statistics/{model.name}_fold_{fold}_stats.json'), 'w') as file:
+    with open(os.path.join(os.path.dirname(__file__), f'{stat_path}/{model.name}_fold_{fold}_stats.json'), 'w') as file:
         json.dump(stats, file, indent=4)
 
 def cross_validation(cfg: DictConfig):
@@ -275,29 +294,36 @@ def cross_validation(cfg: DictConfig):
     kfold = KFold(n_splits=5, shuffle=True, random_state=42)
 
     dataset = EmotionData(os.path.join(os.path.dirname(__file__), cfg.data), cfg.backbone)
-    test_dataset = EmotionData(os.path.join(os.path.dirname(__file__), '../data/eng_a_parsed_test.json'), cfg.backbone)
+    if cfg.test == 'a':
+        test_dataset = EmotionData(os.path.join(os.path.dirname(__file__), '../data/eng_a_parsed_test.json'), cfg.backbone)
+    elif cfg.test == 'b':
+        pass
     
     
     for fold, (train_idx, val_idx) in enumerate(kfold.split(np.arange(len(dataset)))):
         print(f'Starting fold {fold+1}/{5}.')
-
-        sample_weights = class_weights(train_idx)
-        sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(sample_weights), replacement=True)
+        
+        if cfg.weighted:
+            sample_weights = class_weights(train_idx)
+            sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(sample_weights), replacement=True)
 
         # create train and validation datasets
         train_set = torch.utils.data.Subset(dataset, train_idx)
         val_set = torch.utils.data.Subset(dataset, val_idx)
 
         # create dataloaders 
-        train_loader = DataLoader(train_set, batch_size=cfg.batch_size, sampler=sampler)
+        if cfg.weighted:
+            train_loader = DataLoader(train_set, batch_size=cfg.batch_size, sampler=sampler)
+        else:
+            train_loader = DataLoader(train_set, batch_size=cfg.batch_size, shuffle=True)
         val_loader = DataLoader(val_set, batch_size=cfg.batch_size)
         test_loader = DataLoader(test_dataset, batch_size=cfg.batch_size)
 
         model = select_model(cfg.model_name, cfg.backbone, cfg.num_labels, device)
-        optimizer = optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=0.1)
+        optimizer = optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=0.01)
         criterion = nn.BCEWithLogitsLoss().to(device=device)
 
-        train(fold+1, cfg.epochs, cfg.num_labels, model, train_loader, val_loader, test_loader, optimizer, criterion, device)
+        train(fold+1, cfg.epochs, cfg.num_labels, model, train_loader, val_loader, test_loader, optimizer, criterion, device, cfg.model_path, cfg.stat_path)
 
 if __name__ == '__main__':
     # init parser
