@@ -1,0 +1,11 @@
+model_name : deep
+backbone: 'roberta-base'
+data: '../data/eng_b_parsed.json'
+model_path: '../outputs/models/task_b/deep'
+stat_path: '../outputs/statistics/task_b/deep'
+test: 'b'
+weighted: True
+num_labels: 19
+lr: 1e-5
+epochs: 8
+batch_size: 16

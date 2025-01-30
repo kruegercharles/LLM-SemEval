@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.optim as optim
 from omegaconf import DictConfig, OmegaConf
 from misc.misc import search_available_devices, init_confusion, accuracy, precision, recall, f1_score, class_weights
-from data.dataset import EmotionData
+from data.dataset import EmotionData, IntensityData
 from models.lm_classifier import *
 
 def select_model(name, backbone, num_labels, device):
@@ -295,9 +295,11 @@ def cross_validation(cfg: DictConfig):
 
     dataset = EmotionData(os.path.join(os.path.dirname(__file__), cfg.data), cfg.backbone, cfg.mapping)
     if cfg.test == 'a':
+        dataset = EmotionData(os.path.join(os.path.dirname(__file__), cfg.data), cfg.backbone, cfg.mapping)
         test_dataset = EmotionData(os.path.join(os.path.dirname(__file__), '../data/eng_a_parsed_test.json'), cfg.backbone, cfg.mapping)
     elif cfg.test == 'b':
-        pass
+        dataset = IntensityData(os.path.join(os.path.dirname(__file__), cfg.data), cfg.backbone)
+        test_dataset = IntensityData(os.path.join(os.path.dirname(__file__), '../data/eng_b_parsed_test.json'), cfg.backbone)
     
     
     for fold, (train_idx, val_idx) in enumerate(kfold.split(np.arange(len(dataset)))):
