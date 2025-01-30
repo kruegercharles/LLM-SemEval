@@ -293,7 +293,6 @@ def cross_validation(cfg: DictConfig):
     #dataset = EmotionData(os.path.join(os.path.dirname(__file__), cfg.data), cfg.backbone)
     kfold = KFold(n_splits=5, shuffle=True, random_state=42)
 
-    dataset = EmotionData(os.path.join(os.path.dirname(__file__), cfg.data), cfg.backbone, cfg.mapping)
     if cfg.test == 'a':
         dataset = EmotionData(os.path.join(os.path.dirname(__file__), cfg.data), cfg.backbone, cfg.mapping)
         test_dataset = EmotionData(os.path.join(os.path.dirname(__file__), '../data/eng_a_parsed_test.json'), cfg.backbone, cfg.mapping)
