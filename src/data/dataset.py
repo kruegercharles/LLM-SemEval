@@ -69,7 +69,7 @@ class IntensityData(Dataset):
     def __init__(self, file_path, model, max_length=512):
         self.data = self._load_json(file_path)
         self.tokenizer = RobertaTokenizer.from_pretrained(model)
-        self.mapping = {
+        self.label_mapping = {
             'light anger' : 0, 
             'medium anger' : 1,
             'strong anger' : 2,
