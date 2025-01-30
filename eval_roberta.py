@@ -11,6 +11,7 @@ from transformers import (
     RobertaTokenizer,
 )
 from common import EMOTION_LABELS
+from sklearn.metrics import accuracy_score, f1_score  # noqa
 
 
 """
@@ -57,6 +58,10 @@ class ModelClass:
         self.recall = 0
         self.accuracy = 0
         self.f1_score = 0
+        self.labels = []
+        self.predictions = []
+        self.f1_score_macro = 0
+        self.f1_score_weighted = 0
 
 
 def evaulate_answer(answer: set, solution: set, model: ModelClass = None) -> float:
@@ -117,20 +122,78 @@ def load_dataset(path: str) -> dict:
     return dataset
 
 
-def get_precision(tp, fp):
+def get_precision(tp: int, fp: int) -> float:
     return round(tp / (tp + fp), 2)
 
 
-def get_recall(tp, fn):
+def get_recall(tp: int, fn: int) -> float:
     return round(tp / (tp + fn), 2)
 
 
-def get_f1_score(precision, recall):
+def get_f1_score(precision: int, recall: int) -> float:
     return round(2 * (precision * recall) / (precision + recall), 2)
 
 
-def get_accuracy(tp, fp, tn, fn):
+def get_accuracy(tp: int, fp: int, tn: int, fn: int) -> float:
     return round((tp + tn) / (tp + fp + tn + fn), 2)
+
+
+def get_f1_score_macro(labels: list[list[str]], predictions: list[list[str]]) -> float:
+    assert len(labels) == len(predictions)
+
+    f1_scores = []
+
+    possible_emotions = EMOTION_LABELS
+
+    for i, label in enumerate(labels):
+        # make sure label and prediction are the same length by comparing them to the possible emotions and adding empty strings
+        labels_found = []
+        for emotion in possible_emotions:
+            if emotion in label:
+                labels_found.append(emotion)
+            else:
+                labels_found.append(" ")
+
+        predictions_found = []
+        for emotion in possible_emotions:
+            if emotion in predictions[i]:
+                predictions_found.append(emotion)
+            else:
+                predictions_found.append(" ")
+
+        f1_scores.append(f1_score(labels_found, predictions_found, average="macro"))
+
+    return round(sum(f1_scores) / len(f1_scores), 2)
+
+
+def get_f1_score_weighted(
+    labels: list[list[str]], predictions: list[list[str]]
+) -> float:
+    assert len(labels) == len(predictions)
+
+    f1_scores = []
+
+    possible_emotions = EMOTION_LABELS
+
+    for i, label in enumerate(labels):
+        # make sure label and prediction are the same length by comparing them to the possible emotions and adding empty strings
+        labels_found = []
+        for emotion in possible_emotions:
+            if emotion in label:
+                labels_found.append(emotion)
+            else:
+                labels_found.append(" ")
+
+        predictions_found = []
+        for emotion in possible_emotions:
+            if emotion in predictions[i]:
+                predictions_found.append(emotion)
+            else:
+                predictions_found.append(" ")
+
+        f1_scores.append(f1_score(labels_found, predictions_found, average="weighted"))
+
+    return round(sum(f1_scores) / len(f1_scores), 2)
 
 
 print("Start script")
@@ -183,6 +246,9 @@ def prompt():
     print_checkpoint = length // 10
     i = 1
 
+    overall_labels = []
+    overall_predictions = []
+
     for prompt, solution in PROMPT_EXAMPLES.items():
         if i % print_checkpoint == 0:
             print(f"Progress: {i}/{length}")
@@ -193,6 +259,8 @@ def prompt():
             print("-" * 50)
             print(f"Prompt: {prompt}")
             print(" ")
+
+        overall_labels.append(solution)
 
         voting_table = {}
         for emotion in EMOTION_LABELS:
@@ -227,6 +295,9 @@ def prompt():
                 EMOTION_LABELS[j] for j, val in enumerate(predicted_labels) if val == 1
             ]
 
+            current_model.labels.append(solution)
+            current_model.predictions.append(predicted_emotions)
+
             for emotion in predicted_emotions:
                 voting_table[emotion] += 1
 
@@ -249,6 +320,8 @@ def prompt():
             if votes >= len(models) / 2:
                 final_answer.append(emotion)
 
+        overall_predictions.append(final_answer)
+
         if DEBUG_PRINT_STUFF:
             print("Voting table:", voting_table)
             print("\nExpected answer:", solution)
@@ -264,10 +337,14 @@ def prompt():
             evaulate_answer(set(final_answer), set(solution), None)
         )
 
-    statistics(statistics_correct_voting_table)
+    statistics(statistics_correct_voting_table, overall_labels, overall_predictions)
 
 
-def statistics(statistics_correct_voting_table):
+def statistics(
+    statistics_correct_voting_table: list[float],
+    overall_labels: list,
+    overall_predictions: list,
+):
     output_data: list[str] = []
 
     # Calculate statistics
@@ -289,10 +366,18 @@ def statistics(statistics_correct_voting_table):
     recall = get_recall(tp=total_tp, fn=total_fn)
     f1_score = get_f1_score(precision=precision, recall=recall)
     accuracy = get_accuracy(tp=total_tp, fp=total_fp, tn=total_tn, fn=total_fn)
+    f1_score_macro = get_f1_score_macro(
+        labels=overall_labels, predictions=overall_predictions
+    )
+    f1_score_weighted = get_f1_score_weighted(
+        labels=overall_labels, predictions=overall_predictions
+    )
     output_data.append("Precision overall: " + str(precision))
     output_data.append("Recall overall: " + str(recall))
     output_data.append("Accuracy overall: " + str(accuracy))
     output_data.append("F1-Score overall: " + str(f1_score))
+    output_data.append("F1-Score macro overall: " + str(f1_score_macro))
+    output_data.append("F1-Score weighted overall: " + str(f1_score_weighted))
 
     output_data.append("Average correct emotions: " + str(round(percentage, 2)) + "%")
     output_data.append(" ")
@@ -312,10 +397,18 @@ def statistics(statistics_correct_voting_table):
         model.accuracy = get_accuracy(
             tp=model.tp, fp=model.fp, tn=model.tn, fn=model.fn
         )
-        output_data.append("Precision:" + str(model.precision))
-        output_data.append("Recall:" + str(model.recall))
-        output_data.append("F1-Score:" + str(model.f1_score))
-        output_data.append("Accuracy:" + str(model.accuracy))
+        model.f1_score_macro = get_f1_score_macro(
+            labels=model.labels, predictions=model.predictions
+        )
+        model.f1_score_weighted = get_f1_score_weighted(
+            labels=model.labels, predictions=model.predictions
+        )
+        output_data.append("Precision: " + str(model.precision))
+        output_data.append("Recall: " + str(model.recall))
+        output_data.append("F1-Score: " + str(model.f1_score))
+        output_data.append("Accuracy: " + str(model.accuracy))
+        output_data.append("F1-Score macro: " + str(model.f1_score_macro))
+        output_data.append("F1-Score weighted: " + str(model.f1_score_weighted))
         output_data.append(" ")
 
     # Print statistics
@@ -331,14 +424,18 @@ def statistics(statistics_correct_voting_table):
 
     model_names = [model.name for model in models]
     model_names.append("Overall")
-    precisions = [model.precision for model in models]
-    precisions.append(precision)
-    recalls = [model.recall for model in models]
-    recalls.append(recall)
+    # precisions = [model.precision for model in models]
+    # precisions.append(precision)
+    # recalls = [model.recall for model in models]
+    # recalls.append(recall)
     f1_scores = [model.f1_score for model in models]
     f1_scores.append(f1_score)
     accuracies = [model.accuracy for model in models]
     accuracies.append(accuracy)
+    f1_scores_macro = [model.f1_score_macro for model in models]
+    f1_scores_macro.append(f1_score_macro)
+    f1_scores_weighted = [model.f1_score_weighted for model in models]
+    f1_scores_weighted.append(f1_score_weighted)
 
     x = np.arange(len(model_names))  # the label locations
     width = 0.15  # the width of the bars
@@ -348,13 +445,17 @@ def statistics(statistics_correct_voting_table):
     # Plot the bars sequentially
     bar_positions = x
 
-    rects1 = ax.bar(bar_positions, precisions, width, label="Precision")
+    # rects1 = ax.bar(bar_positions, precisions, width, label="Precision")
+    # bar_positions = [p + width for p in bar_positions]
+    # rects2 = ax.bar(bar_positions, recalls, width, label="Recall")
     bar_positions = [p + width for p in bar_positions]
-    rects2 = ax.bar(bar_positions, recalls, width, label="Recall")
+    rects3 = ax.bar(bar_positions, accuracies, width, label="Accuracy")
     bar_positions = [p + width for p in bar_positions]
-    rects3 = ax.bar(bar_positions, f1_scores, width, label="F1-Score")
+    rects4 = ax.bar(bar_positions, f1_scores, width, label="F1-Score")
     bar_positions = [p + width for p in bar_positions]
-    rects4 = ax.bar(bar_positions, accuracies, width, label="Accuracy")
+    rects5 = ax.bar(bar_positions, f1_scores_macro, width, label="F1-Score macro")
+    bar_positions = [p + width for p in bar_positions]
+    rects6 = ax.bar(bar_positions, f1_scores_weighted, width, label="F1-Score weighted")
 
     # Add some text for labels, title and custom x-axis tick labels, etc.
     ax.set_ylabel("Scores")
@@ -380,10 +481,12 @@ def statistics(statistics_correct_voting_table):
                 fontsize=6,
             )
 
-    autolabel(rects1)
-    autolabel(rects2)
+    # autolabel(rects1)
+    # autolabel(rects2)
     autolabel(rects3)
     autolabel(rects4)
+    autolabel(rects5)
+    autolabel(rects6)
 
     # add labels and title
     plt.xticks(rotation=45)
