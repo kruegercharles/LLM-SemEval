@@ -8,5 +8,5 @@ weighted: False
 mapping: full
 num_labels: 7
 lr: 1e-5
-epochs: 8
+epochs: 6
 batch_size: 32
