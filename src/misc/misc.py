@@ -37,51 +37,13 @@ def initialize_weights_xavier(layer):
 def count_correct_samples(pred : torch.tensor, labels : torch.tensor, threshold=0.5):
     return (((torch.sigmoid(pred) > threshold) == labels).all(dim=1)).sum().item()
 
-def init_confusion():
-    confusion = {
-        0 : {
+def init_confusion(num_labels):
+    confusion = {i : {
             'tp' : 0,
             'tn' : 0,
             'fp' : 0,
             'fn' : 0,
-        },
-        1 : {
-            'tp' : 0,
-            'tn' : 0,
-            'fp' : 0,
-            'fn' : 0,
-        },
-        2 : {
-            'tp' : 0,
-            'tn' : 0,
-            'fp' : 0,
-            'fn' : 0,
-        },
-        3 : {
-            'tp' : 0,
-            'tn' : 0,
-            'fp' : 0,
-            'fn' : 0,
-        },
-        4 : {
-            'tp' : 0,
-            'tn' : 0,
-            'fp' : 0,
-            'fn' : 0,
-        },
-        5 : {
-            'tp' : 0,
-            'tn' : 0,
-            'fp' : 0,
-            'fn' : 0,
-        },
-        6 : {
-            'tp' : 0,
-            'tn' : 0,
-            'fp' : 0,
-            'fn' : 0,
-        },
-    }
+        } for i in range(num_labels)}
     return confusion
 
 def accuracy(tp, tn, fp, fn):
@@ -105,19 +67,39 @@ def f1_score(tp, fp, fn):
     else:
         return 2*((precision(tp, fp)*recall(tp, fn))/(precision(tp, fp)+recall(tp, fn)))
     
-def class_weights(idx):
+def class_weights(idx, task, data_path):
 
-    label_mapping = {
-            'anger' : 0,
-            'fear' : 1,
-            'joy' : 2,
-            'sadness' : 3, 
-            'surprise' : 4, 
-            'none' : 5
-        } 
+    if task == 'a':
+        label_mapping = {
+                'anger' : 0,
+                'fear' : 1,
+                'joy' : 2,
+                'sadness' : 3, 
+                'surprise' : 4, 
+                'none' : 5
+            }
+    elif task == 'b':
+        label_mapping = {
+                'light anger' : 0, 
+                'medium anger' : 1,
+                'strong anger' : 2,
+                'light fear' : 3,
+                'medium fear' : 4, 
+                'strong fear' : 5,
+                'light joy' : 6, 
+                'medium joy' : 7, 
+                'strong joy' : 8,
+                'light sadness' : 9, 
+                'medium sadness' : 10, 
+                'strong sadness' : 11,
+                'light surprise' : 12,
+                'medium surprise' : 13, 
+                'strong surprise' : 14, 
+                'none' : 15
+        }
 
     # load json
-    with open(os.path.join(os.path.dirname(__file__), '../../data/eng_a_parsed.json')) as file:
+    with open(os.path.join(os.path.dirname(__file__), f'../{data_path}')) as file:
         data = json.load(file)
     
     labels = []
@@ -139,6 +121,7 @@ def class_weights(idx):
     sample_weights = (labels * class_weights).sum(dim=1)
     sample_weights = sample_weights.numpy()
     print(sample_weights)
+    print(f'Length of sample weights: {len(sample_weights)}')
     return sample_weights
 
 if __name__=='__main__':

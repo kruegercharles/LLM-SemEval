@@ -85,10 +85,7 @@ class IntensityData(Dataset):
             'light surprise' : 12,
             'medium surprise' : 13, 
             'strong surprise' : 14, 
-            'light disgust' : 15, 
-            'medium disgust' : 16, 
-            'strong disgust' : 17, 
-            'none' : 18
+            'none' : 15
         }
         self.max_length = max_length
 

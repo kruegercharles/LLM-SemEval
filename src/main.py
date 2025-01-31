@@ -100,7 +100,7 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
         }
     }
 
-    confusion = init_confusion()
+    confusion = init_confusion(num_labels)
 
     for epoch in range(epochs):
         print(f'Start Training Epoch {epoch+1}.')
@@ -166,7 +166,7 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
         # Validation step
         model.eval()
         total_val_loss = 0
-        confusion = init_confusion()
+        confusion = init_confusion(num_labels)
         with torch.no_grad():
             print(f'Start Validation Epoch {epoch+1}.')
             for batch in val_loader:
@@ -225,7 +225,7 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
    
         ### Test Model on SemEval Test Dataset ###
         model.eval()
-        confusion = init_confusion()
+        confusion = init_confusion(num_labels)
         total_test_loss = 0
         with torch.no_grad():
             print(f'Start Testing on Test Dataset!')
@@ -305,7 +305,7 @@ def cross_validation(cfg: DictConfig):
         print(f'Starting fold {fold+1}/{5}.')
         
         if cfg.weighted:
-            sample_weights = class_weights(train_idx)
+            sample_weights = class_weights(train_idx, cfg.test, cfg.data)
             sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(sample_weights), replacement=True)
 
         # create train and validation datasets
