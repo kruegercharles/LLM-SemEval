@@ -1,8 +1,8 @@
 model_name : pure
 backbone: 'roberta-base'
 data: '../data/data_15k.json'
-model_path: '../outputs/models/task_a/large/pure'
-stat_path: '../outputs/statistics/task_a/large/pure'
+model_path: '../outputs/models/task_a/medium/pure'
+stat_path: '../outputs/statistics/task_a/medium/pure'
 test: 'a'
 weighted: False
 mapping: full
