@@ -295,6 +295,13 @@ def prompt():
                 EMOTION_LABELS[j] for j, val in enumerate(predicted_labels) if val == 1
             ]
 
+            if len(predicted_emotions) == 0:
+                predicted_emotions.append("none")
+
+            assert (
+                len(predicted_emotions) > 0
+            )  # There must always be at least one emotion predicted
+
             current_model.labels.append(solution)
             current_model.predictions.append(predicted_emotions)
 
@@ -319,6 +326,13 @@ def prompt():
         for emotion, votes in voting_table.items():
             if votes >= len(models) / 2:
                 final_answer.append(emotion)
+
+        if len(final_answer) == 0:
+            final_answer.append("none")
+
+        assert (
+            len(final_answer) > 0
+        )  # There must always be at least one emotion predicteds
 
         overall_predictions.append(final_answer)
 
@@ -448,7 +462,7 @@ def statistics(
     # rects1 = ax.bar(bar_positions, precisions, width, label="Precision")
     # bar_positions = [p + width for p in bar_positions]
     # rects2 = ax.bar(bar_positions, recalls, width, label="Recall")
-    bar_positions = [p + width for p in bar_positions]
+    # bar_positions = [p + width for p in bar_positions]
     rects3 = ax.bar(bar_positions, accuracies, width, label="Accuracy")
     bar_positions = [p + width for p in bar_positions]
     rects4 = ax.bar(bar_positions, f1_scores, width, label="F1-Score")

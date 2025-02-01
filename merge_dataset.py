@@ -2,7 +2,7 @@ import json
 
 from common import EMOTION_LABELS
 
-PATH_1 = "data/codabench_data/dev/eng_a_parsed.json"
+PATH_1 = "data/codabench_data/train/eng_a_parsed.json"
 PATH_2 = "data/dair-ai/parsed_data.json"
 # PATH_3 = "data/Emotions_Data/parsed_data.json"
 PATH_3 = "data/Emotions_Data/parsed_data_unpruned.json"

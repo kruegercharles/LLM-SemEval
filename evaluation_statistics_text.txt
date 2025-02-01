@@ -1,63 +1,63 @@
 Statistics:
-Precision overall: 0.41
-Recall overall: 0.42
+Precision overall: 0.38
+Recall overall: 0.34
 Accuracy overall: 0.72
-F1-Score overall: 0.41
-F1-Score macro overall: 0.6
-F1-Score weighted overall: 0.79
-Average correct emotions: 45.26%
+F1-Score overall: 0.36
+F1-Score macro overall: 0.5
+F1-Score weighted overall: 0.73
+Average correct emotions: 35.56%
  
 Model 'RoBERTa base-model':
-Percentage correct: 23.98%
-Precision:0.25
-Recall:0.75
-F1-Score:0.38
-Accuracy:0.42
-F1-Score macro:0.28
-F1-Score weighted:0.52
+Percentage correct: 10.22%
+Precision: 0.13
+Recall: 0.23
+F1-Score: 0.17
+Accuracy: 0.45
+F1-Score macro: 0.2
+F1-Score weighted: 0.51
  
 Model 'Finetuned semeval':
-Percentage correct: 58.12%
-Precision:0.73
-Recall:0.67
-F1-Score:0.7
-Accuracy:0.87
-F1-Score macro:0.69
-F1-Score weighted:0.86
+Percentage correct: 59.84%
+Precision: 0.71
+Recall: 0.68
+F1-Score: 0.69
+Accuracy: 0.86
+F1-Score macro: 0.69
+F1-Score weighted: 0.86
  
 Model 'Finetuned emotions_data':
-Percentage correct: 27.16%
-Precision:0.4
-Recall:0.23
-F1-Score:0.29
-Accuracy:0.74
-F1-Score macro:0.44
-F1-Score weighted:0.7
+Percentage correct: 28.02%
+Precision: 0.39
+Recall: 0.24
+F1-Score: 0.3
+Accuracy: 0.74
+F1-Score macro: 0.44
+F1-Score weighted: 0.7
  
 Model 'Finetuned dair-ai':
-Percentage correct: 26.08%
-Precision:0.46
-Recall:0.28
-F1-Score:0.35
-Accuracy:0.76
-F1-Score macro:0.45
-F1-Score weighted:0.72
+Percentage correct: 26.94%
+Precision: 0.45
+Recall: 0.28
+F1-Score: 0.35
+Accuracy: 0.75
+F1-Score macro: 0.45
+F1-Score weighted: 0.72
  
 Model 'Finetuned goemotions':
 Percentage correct: 23.42%
-Precision:0.33
-Recall:0.19
-F1-Score:0.24
-Accuracy:0.72
-F1-Score macro:0.41
-F1-Score weighted:0.69
+Precision: 0.3
+Recall: 0.19
+F1-Score: 0.23
+Accuracy: 0.71
+F1-Score macro: 0.4
+F1-Score weighted: 0.68
  
 Model 'Finetuned merged_dataset':
-Percentage correct: 48.71%
-Precision:0.77
-Recall:0.4
-F1-Score:0.53
-Accuracy:0.83
-F1-Score macro:0.62
-F1-Score weighted:0.79
+Percentage correct: 50.43%
+Precision: 0.66
+Recall: 0.41
+F1-Score: 0.51
+Accuracy: 0.81
+F1-Score macro: 0.61
+F1-Score weighted: 0.78
  
