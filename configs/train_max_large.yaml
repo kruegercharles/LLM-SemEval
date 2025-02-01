@@ -1,6 +1,6 @@
 model_name : max
 backbone: 'roberta-base'
-data: '../data/merged_data.json'
+data: '../data/merged_data_c.json'
 model_path: '../outputs/models/task_a/large/max'
 stat_path: '../outputs/statistics/task_a/large/max'
 test: 'a'

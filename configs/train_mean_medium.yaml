@@ -1,10 +1,10 @@
 model_name : mean
 backbone: 'roberta-base'
-data: '../data/data_15k.json'
+data: '../data/data_15k_c.json'
 model_path: '../outputs/models/task_a/medium/mean'
 stat_path: '../outputs/statistics/task_a/medium/mean'
 test: 'a'
-weighted: False
+weighted: True
 mapping: reduced
 num_labels: 7
 lr: 1e-5

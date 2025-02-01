@@ -1,6 +1,6 @@
 model_name : pure
 backbone: 'roberta-base'
-data: '../data/data_15k.json'
+data: '../data/data_15k_c.json'
 model_path: '../outputs/models/task_a/medium/pure'
 stat_path: '../outputs/statistics/task_a/medium/pure'
 test: 'a'
