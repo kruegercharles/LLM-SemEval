@@ -5,7 +5,7 @@ model_path: '../outputs/models/task_a/medium/mean'
 stat_path: '../outputs/statistics/task_a/medium/mean'
 test: 'a'
 weighted: False
-mapping: full
+mapping: reduced
 num_labels: 7
 lr: 1e-5
 epochs: 6

@@ -4,8 +4,8 @@ data: '../data/merged_data.json'
 model_path: '../outputs/models/task_a/large/mean'
 stat_path: '../outputs/statistics/task_a/large/mean'
 test: 'a'
-weighted: False
-mapping: full
+weighted: True
+mapping: reduced
 num_labels: 7
 lr: 1e-5
 epochs: 1
