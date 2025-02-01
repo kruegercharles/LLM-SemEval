@@ -508,6 +508,8 @@ def statistics(
     output_data.append("F1-Score macro overall: " + str(f1_score_macro))
     output_data.append("F1-Score weighted overall: " + str(f1_score_weighted))
     output_data.append("Runs: " + str(len(overall_labels)))
+    output_data.append("*" * 50)
+    output_data.append("\n\n")
 
     # Print statistics
     for line in output_data:
@@ -518,13 +520,13 @@ def statistics(
         new_data.append(line + "\n")
 
     # Read current statistics from file
-    with open("human evaluation.txt", "r") as f:
+    with open("human-evaluation.txt", "r") as f:
         old_data = f.readlines()
 
     all_data = old_data + new_data
 
     # Save statistics to file
-    with open("human evaluation.txt", "w") as f:
+    with open("human-evaluation.txt", "w") as f:
         f.writelines(all_data)
 
     """

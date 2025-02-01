@@ -1,0 +1,19 @@
+Statistics:
+Modells:
+Precision overall: 0.43
+Recall overall: 0.39
+Accuracy overall: 0.78
+F1-Score overall: 0.41
+F1-Score macro overall: 0.61
+F1-Score weighted overall: 0.82
+
+Human:
+Name: Charly
+Precision overall: 0.5
+Recall overall: 0.38
+Accuracy overall: 0.8
+F1-Score overall: 0.43
+F1-Score macro overall: 0.54
+F1-Score weighted overall: 0.78
+Runs: 15
+**************************************************
