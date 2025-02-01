@@ -32,6 +32,9 @@ Key aspects:
 """
 
 
+RUNS_TO_PROMT = 15
+
+
 class ModelClass:
     def __init__(self, name: str, path: str):
         self.name: str = name
@@ -350,7 +353,7 @@ def prompt():
 
     already_seen = []
 
-    while run <= len(PROMPT_EXAMPLES):
+    while run <= len(PROMPT_EXAMPLES) and run <= RUNS_TO_PROMT and not quit_programm:
         # pick a random prompt
         prompt = random.choice(list(PROMPT_EXAMPLES.keys()))
 
@@ -447,9 +450,6 @@ def prompt():
         statistics_correct_voting_table.append(
             evaulate_answer(set(final_answer), set(solution), None)
         )
-
-        if quit_programm:
-            break
 
     statistics(overall_labels, overall_predictions, human)
 
