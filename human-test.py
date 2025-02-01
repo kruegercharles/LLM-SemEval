@@ -228,35 +228,25 @@ quit_programm = False
 def get_human_feedback(sentence: str) -> list[str]:
     """
     This function is used to get human feedback for the predictions.
-
-    Emotions:
-    "anger",
-    "fear",
-    "joy",
-    "sadness",
-    "surprise",
-    "disgust",
-    "none"
-
     """
 
     human_answer = []
 
     print("What emotions do you think are expressed in this sentence?")
+    print(
+        "[1] anger, [2] fear, [3] joy, [4] sadness, [5] surprise, [6] disgust, [7] none\n[f] finish answer, [r] restart answer, [q] end programm\n"
+    )
 
     while True:
-        human_input = input(
-            "[1] anger, [2] fear, [3] joy, [4] sadness, [5] surprise, [6] disgust, [7] none\n[8] done, [9] end programm\n"
-        )
+        human_input = input()
 
         try:
-            human_input = int(human_input)
-
-            if human_input < 1 or human_input > 9:
-                continue
-            if human_input == 8:
+            if human_input == "f":
                 break
-            if human_input == 9:
+            if human_input == "r":
+                human_answer = []
+                continue
+            if human_input == "q":
                 end = False
                 while True:
                     print("Do you really want to end the programm? [y/n]")
@@ -271,13 +261,24 @@ def get_human_feedback(sentence: str) -> list[str]:
                     global quit_programm
                     quit_programm = True
                     break
+
+            human_input = int(human_input)
+
+            if human_input < 1 or human_input > 7:
+                continue
+            if human_input == 7 and len(human_answer) > 0:
+                continue
+            if human_input == 7:
+                human_answer.append("none")
+                break
+
             # if answer already in list, continue
             if EMOTION_LABELS[human_input - 1] in human_answer:
                 continue
 
             human_answer.append(EMOTION_LABELS[human_input - 1])
 
-        except ValueError:
+        except:  # noqa: E722
             continue
 
     if len(human_answer) == 0:
@@ -316,11 +317,7 @@ models.append(
 DEBUG_PRINT_ALL_PROBABILITIES = False
 DEBUG_PRINT_STUFF = False
 
-random.seed(42)
-torch.manual_seed(42)
-if torch.cuda.is_available():
-    torch.cuda.manual_seed_all(42)
-
+random.seed()
 
 TOKENIZER_PATH = "models/roberta-base/"
 
@@ -339,9 +336,10 @@ def prompt():
 
     name = ""
 
+    print("\n\nPlease enter your name.")
     while name.strip() == "":
         # get name of user via input
-        name = input("Please enter your name: ")
+        name = input()
 
     print("Hello", name, "!")
 
@@ -365,7 +363,7 @@ def prompt():
         solution = PROMPT_EXAMPLES[prompt]
 
         print("\n\n")
-        print(run, '- Sentence:"', prompt, '"')
+        print(run, '- Sentence: "' + prompt + '"')
         run += 1
 
         overall_labels.append(solution)
@@ -408,6 +406,13 @@ def prompt():
                 EMOTION_LABELS[j] for j, val in enumerate(predicted_labels) if val == 1
             ]
 
+            if len(predicted_emotions) == 0:
+                predicted_emotions.append("none")
+
+            assert (
+                len(predicted_emotions) > 0
+            )  # There must always be at least one emotion predicted
+
             current_model.predictions.append(predicted_emotions)
 
             for emotion in predicted_emotions:
@@ -421,6 +426,12 @@ def prompt():
         for emotion, votes in voting_table.items():
             if votes >= len(models) / 2:
                 final_answer.append(emotion)
+        if len(final_answer) == 0:
+            final_answer.append("none")
+
+        assert (
+            len(final_answer) > 0
+        )  # There must always be at least one emotion predicted
 
         overall_predictions.append(final_answer)
 
@@ -440,13 +451,10 @@ def prompt():
         if quit_programm:
             break
 
-    statistics(
-        statistics_correct_voting_table, overall_labels, overall_predictions, human
-    )
+    statistics(overall_labels, overall_predictions, human)
 
 
 def statistics(
-    statistics_correct_voting_table: list[float],
     overall_labels: list,
     overall_predictions: list,
     human: Human,
@@ -502,6 +510,7 @@ def statistics(
     output_data.append("F1-Score overall: " + str(f1_score))
     output_data.append("F1-Score macro overall: " + str(f1_score_macro))
     output_data.append("F1-Score weighted overall: " + str(f1_score_weighted))
+    output_data.append("Runs: " + str(len(overall_labels)))
 
     # Print statistics
     for line in output_data:
