@@ -124,5 +124,14 @@ def class_weights(idx, task, data_path):
     print(f'Length of sample weights: {len(sample_weights)}')
     return sample_weights
 
+def clear_json():
+    with open(os.path.join(os.path.dirname(__file__), f'../../data/merged_data.json')) as file:
+        data = json.load(file)
+    filtered_data = [entry for entry in data if entry.get("emotions") != ["disgust"]]
+    with open(os.path.join(os.path.dirname(__file__), f'../../data/merged_data_c.json'), "w") as f:
+        json.dump(filtered_data, f, indent=4, ensure_ascii=False)
+
+
+
 if __name__=='__main__':
-    class_weights()
+    clear_json()
