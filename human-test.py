@@ -393,10 +393,13 @@ def prompt():
 
             if len(predicted_emotions) == 0:
                 predicted_emotions.append("none")
+            if len(predicted_emotions) > 1 and "none" in predicted_emotions:
+                predicted_emotions.remove("none")
 
             assert (
                 len(predicted_emotions) > 0
             )  # There must always be at least one emotion predicted
+            assert ("none" not in predicted_emotions) or (len(predicted_emotions) == 1)
 
             current_model.predictions.append(predicted_emotions)
 
@@ -411,12 +414,24 @@ def prompt():
         for emotion, votes in voting_table.items():
             if votes >= len(models) / 2:
                 final_answer.append(emotion)
+
         if len(final_answer) == 0:
             final_answer.append("none")
+        if len(final_answer) > 1 and "none" in final_answer:
+            votes_for_none = voting_table["none"]
+            max_votes_other = 0
+            for emotion, votes in voting_table.items():
+                if emotion != "none" and votes > max_votes_other:
+                    max_votes_other = votes
+            if max_votes_other >= votes_for_none:
+                final_answer.remove("none")
+            else:
+                final_answer = ["none"]
 
         assert (
             len(final_answer) > 0
         )  # There must always be at least one emotion predicted
+        assert ("none" not in final_answer) or (len(final_answer) == 1)
 
         overall_predictions.append(final_answer)
 
