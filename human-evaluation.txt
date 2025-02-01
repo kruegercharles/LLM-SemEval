@@ -17,3 +17,25 @@ F1-Score macro overall: 0.54
 F1-Score weighted overall: 0.78
 Runs: 15
 **************************************************
+Statistics:
+Modells:
+Precision overall: 0.46
+Recall overall: 0.37
+Accuracy overall: 0.72
+F1-Score overall: 0.41
+F1-Score macro overall: 0.61
+F1-Score weighted overall: 0.78
+ 
+Human:
+Name: Katrin
+Precision overall: 0.71
+Recall overall: 0.54
+Accuracy overall: 0.82
+F1-Score overall: 0.61
+F1-Score macro overall: 0.63
+F1-Score weighted overall: 0.79
+Runs: 15
+**************************************************
+
+
+
