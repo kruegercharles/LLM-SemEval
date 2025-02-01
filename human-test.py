@@ -225,9 +225,6 @@ def get_f1_score_weighted(
     return round(sum(f1_scores) / len(f1_scores), 2)
 
 
-quit_programm = False
-
-
 def get_human_feedback(sentence: str) -> list[str]:
     """
     This function is used to get human feedback for the predictions.
@@ -237,7 +234,7 @@ def get_human_feedback(sentence: str) -> list[str]:
 
     print("What emotions do you think are expressed in this sentence?")
     print(
-        "[1] anger, [2] fear, [3] joy, [4] sadness, [5] surprise, [6] disgust, [7] none\n[f] finish answer, [r] restart answer, [q] end programm\n"
+        "[1] anger, [2] fear, [3] joy, [4] sadness, [5] surprise, [6] disgust, [7] none\n[f] finish answer, [r] restart answer\n"
     )
 
     while True:
@@ -249,21 +246,6 @@ def get_human_feedback(sentence: str) -> list[str]:
             if human_input == "r":
                 human_answer = []
                 continue
-            if human_input == "q":
-                end = False
-                while True:
-                    print("Do you really want to end the programm? [y/n]")
-                    end_programm = input()
-                    if end_programm == "y":
-                        end = True
-                        break
-                    else:
-                        break
-
-                if end:
-                    global quit_programm
-                    quit_programm = True
-                    break
 
             human_input = int(human_input)
 
@@ -353,7 +335,7 @@ def prompt():
 
     already_seen = []
 
-    while run <= len(PROMPT_EXAMPLES) and run <= RUNS_TO_PROMT and not quit_programm:
+    while run <= len(PROMPT_EXAMPLES) and run <= RUNS_TO_PROMT:
         # pick a random prompt
         prompt = random.choice(list(PROMPT_EXAMPLES.keys()))
 
