@@ -10,8 +10,9 @@ from transformers import (
     RobertaForSequenceClassification,  # noqa
     RobertaTokenizer,
 )
-from common import EMOTION_LABELS
-from sklearn.metrics import accuracy_score, f1_score  # noqa
+from common import *  # noqa
+
+# ruff: noqa: F405
 
 
 """
@@ -151,80 +152,6 @@ def load_dataset(path: str) -> dict:
     return dataset
 
 
-def get_precision(tp: int, fp: int) -> float:
-    return round(tp / (tp + fp), 2)
-
-
-def get_recall(tp: int, fn: int) -> float:
-    return round(tp / (tp + fn), 2)
-
-
-def get_f1_score(precision: int, recall: int) -> float:
-    return round(2 * (precision * recall) / (precision + recall), 2)
-
-
-def get_accuracy(tp: int, fp: int, tn: int, fn: int) -> float:
-    return round((tp + tn) / (tp + fp + tn + fn), 2)
-
-
-def get_f1_score_macro(labels: list[list[str]], predictions: list[list[str]]) -> float:
-    assert len(labels) == len(predictions)
-
-    f1_scores = []
-
-    possible_emotions = EMOTION_LABELS
-
-    for i, label in enumerate(labels):
-        # make sure label and prediction are the same length by comparing them to the possible emotions and adding empty strings
-        labels_found = []
-        for emotion in possible_emotions:
-            if emotion in label:
-                labels_found.append(emotion)
-            else:
-                labels_found.append(" ")
-
-        predictions_found = []
-        for emotion in possible_emotions:
-            if emotion in predictions[i]:
-                predictions_found.append(emotion)
-            else:
-                predictions_found.append(" ")
-
-        f1_scores.append(f1_score(labels_found, predictions_found, average="macro"))
-
-    return round(sum(f1_scores) / len(f1_scores), 2)
-
-
-def get_f1_score_weighted(
-    labels: list[list[str]], predictions: list[list[str]]
-) -> float:
-    assert len(labels) == len(predictions)
-
-    f1_scores = []
-
-    possible_emotions = EMOTION_LABELS
-
-    for i, label in enumerate(labels):
-        # make sure label and prediction are the same length by comparing them to the possible emotions and adding empty strings
-        labels_found = []
-        for emotion in possible_emotions:
-            if emotion in label:
-                labels_found.append(emotion)
-            else:
-                labels_found.append(" ")
-
-        predictions_found = []
-        for emotion in possible_emotions:
-            if emotion in predictions[i]:
-                predictions_found.append(emotion)
-            else:
-                predictions_found.append(" ")
-
-        f1_scores.append(f1_score(labels_found, predictions_found, average="weighted"))
-
-    return round(sum(f1_scores) / len(f1_scores), 2)
-
-
 def get_human_feedback(sentence: str) -> list[str]:
     """
     This function is used to get human feedback for the predictions.
@@ -279,24 +206,26 @@ THRESHOLD = 0.5
 
 models: list[ModelClass] = []
 
-models.append(
-    ModelClass(name="RoBERTa base-model", path="models/roberta-base/")
-)  # base model
-models.append(
-    ModelClass(name="Finetuned semeval", path="output/roberta-semeval/")
-)  # finetuned with codabench data
-models.append(
-    ModelClass(name="Finetuned emotions_data", path="output/emotions-data/")
-)  # finetuned with emotions data
-models.append(
-    ModelClass(name="Finetuned dair-ai", path="output/dair-ai/")
-)  # finetuned with dair-ai data
-models.append(
-    ModelClass(name="Finetuned goemotions", path="output/goemotions/")
-)  # finetuned with goemotions data
-models.append(
-    ModelClass(name="Finetuned merged_dataset", path="output/merged-dataset/")
-)  # finetuned with merged dataset
+# models.append(
+# ModelClass(name="RoBERTa base-model", path="models/roberta-base/")
+# )  # base model
+
+for i in range(5+1):
+    models.append(
+        ModelClass(name="Finetuned semeval", path="output/roberta-semeval/")
+    )  # finetuned with codabench data
+# models.append(
+#     ModelClass(name="Finetuned emotions_data", path="output/emotions-data/")
+# )  # finetuned with emotions data
+# models.append(
+#     ModelClass(name="Finetuned dair-ai", path="output/dair-ai/")
+# )  # finetuned with dair-ai data
+# models.append(
+#     ModelClass(name="Finetuned goemotions", path="output/goemotions/")
+# )  # finetuned with goemotions data
+# models.append(
+#     ModelClass(name="Finetuned merged_dataset", path="output/merged-dataset/")
+# )  # finetuned with merged dataset
 
 
 DEBUG_PRINT_ALL_PROBABILITIES = False

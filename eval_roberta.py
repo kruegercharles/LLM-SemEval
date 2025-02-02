@@ -10,9 +10,9 @@ from transformers import (
     RobertaForSequenceClassification,  # noqa
     RobertaTokenizer,
 )
-from common import EMOTION_LABELS
-from sklearn.metrics import accuracy_score, f1_score  # noqa
+from common import *  # noqa
 
+# ruff: noqa: F405
 
 """
 This script performs emotion classification using an ensemble of RoBERTa models.
@@ -31,6 +31,8 @@ Key aspects:
 - Currently loads the same model multiple times, which limits the ensemble's effectiveness.
 """
 
+USE_COMPLEXE_EMOTIONS = True
+
 
 class ModelClass:
     def __init__(self, name: str, path: str):
@@ -43,7 +45,9 @@ class ModelClass:
         self.model: RobertaForSequenceClassification = (
             RobertaForSequenceClassification.from_pretrained(
                 path,
-                num_labels=len(EMOTION_LABELS),
+                num_labels=len(EMOTION_COMPLEX_LABELS)
+                if USE_COMPLEXE_EMOTIONS
+                else len(EMOTION_LABELS),
                 cache_dir="cache-dir/",
                 ignore_mismatched_sizes=True,
             ).to("cuda" if torch.cuda.is_available() else "cpu")
@@ -122,107 +126,43 @@ def load_dataset(path: str) -> dict:
     return dataset
 
 
-def get_precision(tp: int, fp: int) -> float:
-    return round(tp / (tp + fp), 2)
-
-
-def get_recall(tp: int, fn: int) -> float:
-    return round(tp / (tp + fn), 2)
-
-
-def get_f1_score(precision: int, recall: int) -> float:
-    return round(2 * (precision * recall) / (precision + recall), 2)
-
-
-def get_accuracy(tp: int, fp: int, tn: int, fn: int) -> float:
-    return round((tp + tn) / (tp + fp + tn + fn), 2)
-
-
-def get_f1_score_macro(labels: list[list[str]], predictions: list[list[str]]) -> float:
-    assert len(labels) == len(predictions)
-
-    f1_scores = []
-
-    possible_emotions = EMOTION_LABELS
-
-    for i, label in enumerate(labels):
-        # make sure label and prediction are the same length by comparing them to the possible emotions and adding empty strings
-        labels_found = []
-        for emotion in possible_emotions:
-            if emotion in label:
-                labels_found.append(emotion)
-            else:
-                labels_found.append(" ")
-
-        predictions_found = []
-        for emotion in possible_emotions:
-            if emotion in predictions[i]:
-                predictions_found.append(emotion)
-            else:
-                predictions_found.append(" ")
-
-        f1_scores.append(f1_score(labels_found, predictions_found, average="macro"))
-
-    return round(sum(f1_scores) / len(f1_scores), 2)
-
-
-def get_f1_score_weighted(
-    labels: list[list[str]], predictions: list[list[str]]
-) -> float:
-    assert len(labels) == len(predictions)
-
-    f1_scores = []
-
-    possible_emotions = EMOTION_LABELS
-
-    for i, label in enumerate(labels):
-        # make sure label and prediction are the same length by comparing them to the possible emotions and adding empty strings
-        labels_found = []
-        for emotion in possible_emotions:
-            if emotion in label:
-                labels_found.append(emotion)
-            else:
-                labels_found.append(" ")
-
-        predictions_found = []
-        for emotion in possible_emotions:
-            if emotion in predictions[i]:
-                predictions_found.append(emotion)
-            else:
-                predictions_found.append(" ")
-
-        f1_scores.append(f1_score(labels_found, predictions_found, average="weighted"))
-
-    return round(sum(f1_scores) / len(f1_scores), 2)
-
-
 print("Start script")
 
-PROMPT_EXAMPLES = load_dataset("data/codabench_data/dev/eng_a_parsed.json")
 
 # Define threshold for binary classification
 THRESHOLD = 0.5
 
+
+if USE_COMPLEXE_EMOTIONS:
+    PROMPT_EXAMPLES = load_dataset("data/codabench_data/dev/eng_b_parsed.json")
+else:
+    PROMPT_EXAMPLES = load_dataset("data/codabench_data/dev/eng_a_parsed.json")
+
 models: list[ModelClass] = []
 
-models.append(
-    ModelClass(name="RoBERTa base-model", path="models/roberta-base/")
-)  # base model
-models.append(
-    ModelClass(name="Finetuned semeval", path="output/roberta-semeval/")
-)  # finetuned with codabench data
-models.append(
-    ModelClass(name="Finetuned emotions_data", path="output/emotions-data/")
-)  # finetuned with emotions data
-models.append(
-    ModelClass(name="Finetuned dair-ai", path="output/dair-ai/")
-)  # finetuned with dair-ai data
-models.append(
-    ModelClass(name="Finetuned goemotions", path="output/goemotions/")
-)  # finetuned with goemotions data
-models.append(
-    ModelClass(name="Finetuned merged_dataset", path="output/merged-dataset/")
-)  # finetuned with merged dataset
+if USE_COMPLEXE_EMOTIONS:
+    models.append(
+        ModelClass(name="SemEval complexe", path="output/roberta-semeval-complexe/")
+    )
+else:
+    # models.append(
+    # ModelClass(name="RoBERTa base-model", path="models/roberta-base/")
+    # )  # base model
+    models.append(
+        ModelClass(name="Finetuned semeval", path="output/roberta-semeval/")
+    )  # finetuned with codabench data
+    models.append(
+        ModelClass(name="Finetuned emotions_data", path="output/emotions-data/")
+    )  # finetuned with emotions data
+    models.append(
+        ModelClass(name="Finetuned dair-ai", path="output/dair-ai/")
+    )  # finetuned with dair-ai data
+    models.append(
+        ModelClass(name="Finetuned goemotions", path="output/goemotions/")
+    )  # finetuned with goemotions data
+    models.append(
+        ModelClass(name="Finetuned merged_dataset", path="output/merged-dataset/")
+    )  # finetuned with merged dataset
 
 
 DEBUG_PRINT_ALL_PROBABILITIES = False
@@ -263,14 +203,19 @@ def prompt():
         overall_labels.append(solution)
 
         voting_table = {}
-        for emotion in EMOTION_LABELS:
-            voting_table[emotion] = 0
 
-        for i, current_model in enumerate(models):
+        if USE_COMPLEXE_EMOTIONS:
+            for emotion in EMOTION_COMPLEX_LABELS:
+                voting_table[emotion] = 0
+        else:
+            for emotion in EMOTION_LABELS:
+                voting_table[emotion] = 0
+
+        for run, current_model in enumerate(models):
             assert isinstance(current_model, ModelClass)
 
             if DEBUG_PRINT_STUFF:
-                print("Run:", i + 1, "with model:", current_model.name)
+                print("Run:", run + 1, "with model:", current_model.name)
 
             # Set model to evaluation mode to disable dropout
             current_model.model.eval()
@@ -291,9 +236,18 @@ def prompt():
             predicted_labels = (probabilities > THRESHOLD).int().squeeze().tolist()
 
             # Get predicted emotions
-            predicted_emotions = [
-                EMOTION_LABELS[j] for j, val in enumerate(predicted_labels) if val == 1
-            ]
+            if USE_COMPLEXE_EMOTIONS:
+                predicted_emotions = [
+                    EMOTION_COMPLEX_LABELS[j]
+                    for j, val in enumerate(predicted_labels)
+                    if val == 1
+                ]
+            else:
+                predicted_emotions = [
+                    EMOTION_LABELS[j]
+                    for j, val in enumerate(predicted_labels)
+                    if val == 1
+                ]
 
             if len(predicted_emotions) == 0:
                 predicted_emotions.append("none")
@@ -316,10 +270,16 @@ def prompt():
 
             if DEBUG_PRINT_ALL_PROBABILITIES:
                 print("Probabilities:")
-                for label, prob in zip(
-                    EMOTION_LABELS, probabilities.squeeze().tolist()
-                ):
-                    print(f"  {label}: {prob:.3f}")
+                if USE_COMPLEXE_EMOTIONS:
+                    for label, prob in zip(
+                        EMOTION_COMPLEX_LABELS, probabilities.squeeze().tolist()
+                    ):
+                        print(f"  {label}: {prob:.3f}")
+                else:
+                    for label, prob in zip(
+                        EMOTION_LABELS, probabilities.squeeze().tolist()
+                    ):
+                        print(f"  {label}: {prob:.3f}")
             if DEBUG_PRINT_STUFF:
                 print(f"Predicted Emotion: {predicted_emotions}")
                 print(" ")
@@ -394,12 +354,8 @@ def statistics(
     recall = get_recall(tp=total_tp, fn=total_fn)
     f1_score = get_f1_score(precision=precision, recall=recall)
     accuracy = get_accuracy(tp=total_tp, fp=total_fp, tn=total_tn, fn=total_fn)
-    f1_score_macro = get_f1_score_macro(
-        labels=overall_labels, predictions=overall_predictions
-    )
-    f1_score_weighted = get_f1_score_weighted(
-        labels=overall_labels, predictions=overall_predictions
-    )
+    f1_score_macro = get_f1_score_macro(overall_labels, overall_predictions)
+    f1_score_weighted = get_f1_score_weighted(overall_labels, overall_predictions)
     output_data.append("Precision overall: " + str(precision))
     output_data.append("Recall overall: " + str(recall))
     output_data.append("Accuracy overall: " + str(accuracy))
@@ -425,12 +381,8 @@ def statistics(
         model.accuracy = get_accuracy(
             tp=model.tp, fp=model.fp, tn=model.tn, fn=model.fn
         )
-        model.f1_score_macro = get_f1_score_macro(
-            labels=model.labels, predictions=model.predictions
-        )
-        model.f1_score_weighted = get_f1_score_weighted(
-            labels=model.labels, predictions=model.predictions
-        )
+        model.f1_score_macro = get_f1_score_macro(model.labels, model.predictions)
+        model.f1_score_weighted = get_f1_score_weighted(model.labels, model.predictions)
         output_data.append("Precision: " + str(model.precision))
         output_data.append("Recall: " + str(model.recall))
         output_data.append("F1-Score: " + str(model.f1_score))
@@ -444,26 +396,31 @@ def statistics(
         print(line)
 
     # Save statistics to file
-    with open("evaluation_statistics_text.txt", "w") as f:
-        for line in output_data:
-            f.write(str(line) + "\n")
+    if USE_COMPLEXE_EMOTIONS:
+        with open("evaluation_statistics_text_complexe.txt", "w") as f:
+            for line in output_data:
+                f.write(str(line) + "\n")
+    else:
+        with open("evaluation_statistics_text.txt", "w") as f:
+            for line in output_data:
+                f.write(str(line) + "\n")
 
     plt.figure()
 
     model_names = [model.name for model in models]
-    model_names.append("Overall")
+    # model_names.append("Overall")
     # precisions = [model.precision for model in models]
     # precisions.append(precision)
     # recalls = [model.recall for model in models]
     # recalls.append(recall)
-    f1_scores = [model.f1_score for model in models]
-    f1_scores.append(f1_score)
+    # f1_scores = [model.f1_score for model in models]
+    # f1_scores.append(f1_score)
     accuracies = [model.accuracy for model in models]
-    accuracies.append(accuracy)
+    # accuracies.append(accuracy)
     f1_scores_macro = [model.f1_score_macro for model in models]
-    f1_scores_macro.append(f1_score_macro)
+    # f1_scores_macro.append(f1_score_macro)
     f1_scores_weighted = [model.f1_score_weighted for model in models]
-    f1_scores_weighted.append(f1_score_weighted)
+    # f1_scores_weighted.append(f1_score_weighted)
 
     x = np.arange(len(model_names))  # the label locations
     width = 0.15  # the width of the bars
@@ -479,8 +436,8 @@ def statistics(
     # bar_positions = [p + width for p in bar_positions]
     rects3 = ax.bar(bar_positions, accuracies, width, label="Accuracy")
     bar_positions = [p + width for p in bar_positions]
-    rects4 = ax.bar(bar_positions, f1_scores, width, label="F1-Score")
-    bar_positions = [p + width for p in bar_positions]
+    # rects4 = ax.bar(bar_positions, f1_scores, width, label="F1-Score")
+    # bar_positions = [p + width for p in bar_positions]
     rects5 = ax.bar(bar_positions, f1_scores_macro, width, label="F1-Score macro")
     bar_positions = [p + width for p in bar_positions]
     rects6 = ax.bar(bar_positions, f1_scores_weighted, width, label="F1-Score weighted")
@@ -512,7 +469,7 @@ def statistics(
     # autolabel(rects1)
     # autolabel(rects2)
     autolabel(rects3)
-    autolabel(rects4)
+    # autolabel(rects4)
     autolabel(rects5)
     autolabel(rects6)
 
@@ -527,7 +484,11 @@ def statistics(
 
     fig = plt.gcf()
     # save the plot
-    fig.savefig("evaluation_statistics_plot.png")
+
+    if USE_COMPLEXE_EMOTIONS:
+        fig.savefig("evaluation_statistics_plot_complexe.png")
+    else:
+        fig.savefig("evaluation_statistics_plot.png")
 
 
 if __name__ == "__main__":

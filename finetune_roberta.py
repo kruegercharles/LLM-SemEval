@@ -6,7 +6,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from common import EMOTION_LABELS
+from common import EMOTION_COMPLEX_LABELS, EMOTION_LABELS
 from datasets import load_dataset
 from sklearn.metrics import accuracy_score, f1_score  # noqa
 from transformers import (
@@ -48,8 +48,13 @@ CACHE_DIR = Path("cache-dir/")
 # DATA_SET_PATH = Path("data/go_emotions/parsed_data.json")
 
 # Merged Dataset
-OUTPUT_DIR = Path("output/merged-dataset")
-DATA_SET_PATH = Path("data/merged_data.json")
+# OUTPUT_DIR = Path("output/merged-dataset")
+# DATA_SET_PATH = Path("data/merged_data.json")
+
+OUTPUT_DIR = Path("output/roberta-semeval-complexe")
+DATA_SET_PATH = Path("data/codabench_data/train/eng_b_parsed.json")
+
+USE_COMPLEXE_EMOTIONS = True
 
 
 # Hyperparameters
@@ -244,12 +249,23 @@ def preprocess_data(examples):
         # Create a multi-hot encoded vector for the emotions
 
         # set all labels to 0
-        label = torch.zeros(len(EMOTION_LABELS))
+        if USE_COMPLEXE_EMOTIONS:
+            label = torch.zeros(len(EMOTION_COMPLEX_LABELS))
+        else:
+            label = torch.zeros(len(EMOTION_LABELS))
+
         for emotion in emotions:
-            if emotion not in EMOTION_LABELS:
-                print("\n\n=====>>>>>>>>Unknown emotion:", emotion, "\n\n")
-                continue
-            label[EMOTION_LABELS.index(emotion)] = 1
+            if USE_COMPLEXE_EMOTIONS:
+                if emotion not in EMOTION_COMPLEX_LABELS:
+                    print("\n\n=====>>>>>>>>Unknown emotion:", emotion, "\n\n")
+                    continue
+                label[EMOTION_COMPLEX_LABELS.index(emotion)] = 1
+
+            else:
+                if emotion not in EMOTION_LABELS:
+                    print("\n\n=====>>>>>>>>Unknown emotion:", emotion, "\n\n")
+                    continue
+                label[EMOTION_LABELS.index(emotion)] = 1
         labels.append(label)
 
     tokenized["labels"] = labels
@@ -267,7 +283,9 @@ def finetune():
 
     model = RobertaForSequenceClassification.from_pretrained(
         MODEL_TO_FINETUNE_NAME,
-        num_labels=len(EMOTION_LABELS),
+        num_labels=len(EMOTION_COMPLEX_LABELS)
+        if USE_COMPLEXE_EMOTIONS
+        else len(EMOTION_LABELS),
         problem_type="multi_label_classification",
         cache_dir="cache-dir/",
     ).to("cuda" if torch.cuda.is_available() else "cpu")
