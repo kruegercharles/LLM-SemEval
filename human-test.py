@@ -85,7 +85,7 @@ class Human:
         self.f1_score_weighted = 0
 
 
-def evaulate_answer(
+def evaluate_answer(
     answer: set, solution: set, model: ModelClass = None, human: Human = None
 ) -> float:
     """
@@ -116,13 +116,6 @@ def evaulate_answer(
     assert true_positives + false_positives + false_negatives == total
 
     correct = true_positives / total * 100
-
-    if DEBUG_PRINT_STUFF:
-        print(
-            "Correct emotions:",
-            round(correct, None),
-            "%",
-        )
 
     if model is not None:
         model.percentage_correct.append(correct)
@@ -210,10 +203,9 @@ models: list[ModelClass] = []
 # ModelClass(name="RoBERTa base-model", path="models/roberta-base/")
 # )  # base model
 
-for i in range(5+1):
-    models.append(
-        ModelClass(name="Finetuned semeval", path="output/roberta-semeval/")
-    )  # finetuned with codabench data
+models.append(
+    ModelClass(name="Finetuned semeval", path="output/roberta-semeval/")
+)  # finetuned with codabench data
 # models.append(
 #     ModelClass(name="Finetuned emotions_data", path="output/emotions-data/")
 # )  # finetuned with emotions data
@@ -227,9 +219,6 @@ for i in range(5+1):
 #     ModelClass(name="Finetuned merged_dataset", path="output/merged-dataset/")
 # )  # finetuned with merged dataset
 
-
-DEBUG_PRINT_ALL_PROBABILITIES = False
-DEBUG_PRINT_STUFF = False
 
 random.seed()
 
@@ -285,7 +274,7 @@ def prompt():
         human_answer = get_human_feedback(prompt)
 
         human.predictions.append(human_answer)
-        evaulate_answer(set(human_answer), set(solution), None, human)
+        evaluate_answer(set(human_answer), set(solution), None, human)
 
         voting_table = {}
         for emotion in EMOTION_LABELS:
@@ -293,9 +282,6 @@ def prompt():
 
         for i, current_model in enumerate(models):
             assert isinstance(current_model, ModelClass)
-
-            if DEBUG_PRINT_STUFF:
-                print("Run:", i + 1, "with model:", current_model.name)
 
             # Set model to evaluation mode to disable dropout
             current_model.model.eval()
@@ -335,8 +321,10 @@ def prompt():
             for emotion in predicted_emotions:
                 voting_table[emotion] += 1
 
+            print("Voting Table Models:", voting_table)
+
             # Create individual statistics for each model
-            evaulate_answer(set(predicted_emotions), set(solution), current_model)
+            evaluate_answer(set(predicted_emotions), set(solution), current_model)
 
         # Go through all results and find the set of emotions that at least half of the models predicted
         final_answer = []
@@ -374,7 +362,7 @@ def prompt():
         print("Correct answer:", solution)
 
         statistics_correct_voting_table.append(
-            evaulate_answer(set(final_answer), set(solution), None)
+            evaluate_answer(set(final_answer), set(solution), None)
         )
 
     statistics(overall_labels, overall_predictions, human)

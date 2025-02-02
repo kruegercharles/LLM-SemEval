@@ -68,7 +68,7 @@ class ModelClass:
         self.f1_score_weighted = 0
 
 
-def evaulate_answer(answer: set, solution: set, model: ModelClass = None) -> float:
+def evaluate_answer(answer: set, solution: set, model: ModelClass = None) -> float:
     """
     Compares the final_answer and the solution and prints the results.
     """
@@ -266,7 +266,7 @@ def prompt():
                 voting_table[emotion] += 1
 
             # Create individual statistics for each model
-            evaulate_answer(set(predicted_emotions), set(solution), current_model)
+            evaluate_answer(set(predicted_emotions), set(solution), current_model)
 
             if DEBUG_PRINT_ALL_PROBABILITIES:
                 print("Probabilities:")
@@ -322,7 +322,7 @@ def prompt():
                 print(final_answer_text, final_answer)
 
         statistics_correct_voting_table.append(
-            evaulate_answer(set(final_answer), set(solution), None)
+            evaluate_answer(set(final_answer), set(solution), None)
         )
 
     statistics(statistics_correct_voting_table, overall_labels, overall_predictions)
