@@ -10,7 +10,7 @@ from transformers import RobertaForSequenceClassification  # noqa
 from transformers import RobertaTokenizer
 
 from common import *  # noqa
-from main import *  # noqa
+from models.lm_classifier import *
 
 # ruff: noqa: F405
 
@@ -32,6 +32,31 @@ Key aspects:
 """
 
 USE_COMPLEXE_EMOTIONS = False
+
+
+def select_model(name, backbone, num_labels, device):
+    if name == "pure":
+        return RobertaForSequenceClassificationPure(backbone, num_labels).to(
+            device=device
+        )
+    elif name == "deep":
+        return RobertaForSequenceClassificationDeep(backbone, num_labels).to(
+            device=device
+        )
+    elif name == "mean":
+        return RobertaForSequenceClassificationMeanPooling(backbone, num_labels).to(
+            device=device
+        )
+    elif name == "max":
+        return RobertaForSequenceClassificationMaxPooling(backbone, num_labels).to(
+            device=device
+        )
+    elif name == "attention":
+        return RobertaForSequenceClassificationAttentionPooling(
+            backbone, num_labels
+        ).to(device=device)
+    else:
+        raise ValueError("Specified model name is not available!")
 
 
 class ModelClass:
