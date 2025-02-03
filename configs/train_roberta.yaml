@@ -1,0 +1,17 @@
+defaults:  
+  - _self_  
+  - override hydra/hydra_logging: disabled  
+  - override hydra/job_logging: disabled  
+  
+hydra:  
+  output_subdir: null  
+  run:  
+    dir: .
+
+model_name : base
+backbone: 'roberta-base'
+data: '../data/eng_a_parsed.json'
+num_labels: 6
+lr: 1e-5
+epochs: 8
+batch_size: 16

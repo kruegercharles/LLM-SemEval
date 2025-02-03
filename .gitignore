@@ -160,6 +160,12 @@ cython_debug/
 #.idea/
 
 # Models
+models/checkpoints/Llama3.1-8B-Instruct/*
+data/codabench_data/train/combined/*
+data/merged_data.json
+data/data_15k.json
+data/data_15k_c.json
+data/merged_data_c.json
 models/*
 !models/.gitkeep
 !models/checkpoints/.gitkeep

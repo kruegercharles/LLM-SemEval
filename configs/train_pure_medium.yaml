@@ -1,0 +1,12 @@
+model_name : pure
+backbone: 'roberta-base'
+data: '../data/data_15k_c.json'
+model_path: '../outputs/models/task_a/medium/pure'
+stat_path: '../outputs/statistics/task_a/medium/pure'
+test: 'a'
+weighted: True
+mapping: reduced
+num_labels: 6
+lr: 1e-5
+epochs: 6
+batch_size: 32
