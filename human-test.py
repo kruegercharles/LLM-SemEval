@@ -52,6 +52,10 @@ class ModelClass:
                 ignore_mismatched_sizes=True,
             ).to("cuda" if torch.cuda.is_available() else "cpu")
         )
+
+        # Set model to evaluation mode to disable dropout
+        self.model.eval()
+
         self.percentage_correct: list[float] = []
         self.percentage_correct_number = 0
         self.tp = 0
@@ -220,7 +224,10 @@ models.append(
 # )  # finetuned with merged dataset
 
 
-random.seed()
+random.seed(42)
+torch.manual_seed(42)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(42)
 
 TOKENIZER_PATH = "models/roberta-base/"
 
@@ -282,9 +289,6 @@ def prompt():
 
         for i, current_model in enumerate(models):
             assert isinstance(current_model, ModelClass)
-
-            # Set model to evaluation mode to disable dropout
-            current_model.model.eval()
 
             # Tokenize the input
             inputs = tokenizer(

@@ -1,16 +1,16 @@
+import json  # noqa
 import os  # noqa
 import random  # noqa
-import json  # noqa
+
 import matplotlib.pyplot as plt  # noqa
 import numpy as np  # noqa
-
 import torch  # noqa
 from torch import Tensor  # noqa
-from transformers import (
-    RobertaForSequenceClassification,  # noqa
-    RobertaTokenizer,
-)
+from transformers import RobertaForSequenceClassification  # noqa
+from transformers import RobertaTokenizer
+
 from common import *  # noqa
+from main import *  # noqa
 
 # ruff: noqa: F405
 
@@ -31,27 +31,25 @@ Key aspects:
 - Currently loads the same model multiple times, which limits the ensemble's effectiveness.
 """
 
-USE_COMPLEXE_EMOTIONS = True
+USE_COMPLEXE_EMOTIONS = False
 
 
 class ModelClass:
-    def __init__(self, name: str, path: str):
+    def __init__(self, name: str, path: str, num_labels: int):
         self.name: str = name
         self.path: str = path
 
         if not os.path.exists(path):
             raise FileNotFoundError(f"Model {path} not found.")
 
-        self.model: RobertaForSequenceClassification = (
-            RobertaForSequenceClassification.from_pretrained(
-                path,
-                num_labels=len(EMOTION_COMPLEX_LABELS)
-                if USE_COMPLEXE_EMOTIONS
-                else len(EMOTION_LABELS),
-                cache_dir="cache-dir/",
-                ignore_mismatched_sizes=True,
-            ).to("cuda" if torch.cuda.is_available() else "cpu")
+        device = search_available_devices()
+
+        self.model = select_model(
+            name=name, backbone=path, num_labels=num_labels, device=device
         )
+
+        self.model.eval()
+
         self.percentage_correct: list[float] = []
         self.percentage_correct_number = 0
         self.tp = 0
@@ -145,24 +143,57 @@ if USE_COMPLEXE_EMOTIONS:
         ModelClass(name="SemEval complexe", path="output/roberta-semeval-complexe/")
     )
 else:
+    models.append(
+        ModelClass(
+            name="pure",
+            path="output/RobertaForSequenceClassificationPure_fold_3_epoch_5.pth",
+            num_labels=len(PROMPT_EXAMPLES.items()),
+        )
+    )
+    models.append(
+        ModelClass(
+            name="deep",
+            path="output/RobertaForSequenceClassificationDeep_fold_2_epoch_8.pth",
+            num_labels=len(PROMPT_EXAMPLES.items()),
+        )
+    )
+    models.append(
+        ModelClass(
+            name="mean",
+            path="output/RobertaForSequenceClassificationMeanPooling_fold_5_epoch_8.pth",
+            num_labels=len(PROMPT_EXAMPLES.items()),
+        )
+    )
+    models.append(
+        ModelClass(
+            name="max",
+            path="output/RobertaForSequenceClassificationMaxPooling_fold_3_epoch_8.pth",
+            num_labels=len(PROMPT_EXAMPLES.items()),
+        )
+    )
+    models.append(
+        ModelClass(
+            name="attention",
+            path="output/RobertaForSequenceClassificationAttentionPooling_fold_5_epoch_7.pth",
+            num_labels=len(PROMPT_EXAMPLES.items()),
+        )
+    )
+
     # models.append(
     # ModelClass(name="RoBERTa base-model", path="models/roberta-base/")
     # )  # base model
-    models.append(
-        ModelClass(name="Finetuned semeval", path="output/roberta-semeval/")
-    )  # finetuned with codabench data
-    models.append(
-        ModelClass(name="Finetuned emotions_data", path="output/emotions-data/")
-    )  # finetuned with emotions data
-    models.append(
-        ModelClass(name="Finetuned dair-ai", path="output/dair-ai/")
-    )  # finetuned with dair-ai data
-    models.append(
-        ModelClass(name="Finetuned goemotions", path="output/goemotions/")
-    )  # finetuned with goemotions data
-    models.append(
-        ModelClass(name="Finetuned merged_dataset", path="output/merged-dataset/")
-    )  # finetuned with merged dataset
+    # models.append(
+    # ModelClass(name="Finetuned emotions_data", path="output/emotions-data/")
+    # )  # finetuned with emotions data
+    # models.append(
+    # ModelClass(name="Finetuned dair-ai", path="output/dair-ai/")
+    # )  # finetuned with dair-ai data
+    # models.append(
+    # ModelClass(name="Finetuned goemotions", path="output/goemotions/")
+    # )  # finetuned with goemotions data
+    # models.append(
+    # ModelClass(name="Finetuned merged_dataset", path="output/merged-dataset/")
+    # )  # finetuned with merged dataset """
 
 
 DEBUG_PRINT_ALL_PROBABILITIES = False
@@ -216,9 +247,6 @@ def prompt():
 
             if DEBUG_PRINT_STUFF:
                 print("Run:", run + 1, "with model:", current_model.name)
-
-            # Set model to evaluation mode to disable dropout
-            current_model.model.eval()
 
             # Tokenize the input
             inputs = tokenizer(
