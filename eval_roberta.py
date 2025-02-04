@@ -32,6 +32,13 @@ Key aspects:
 - Currently loads the same model multiple times, which limits the ensemble's effectiveness.
 """
 
+
+random.seed(42)
+torch.manual_seed(42)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(42)
+np.random.seed(42)
+
 USE_COMPLEXE_EMOTIONS = False
 
 
@@ -58,7 +65,10 @@ def select_model(name, backbone, num_labels, device):
 
 class ModelClass:
     def __init__(
-        self, name: str, path: str, num_labels: int = None, dict_path: str = None
+        self,
+        name: str,
+        path: str,
+        num_labels: int = None,
     ):
         self.name: str = name
         self.path: str = path
@@ -130,8 +140,6 @@ else:
         ModelClass(
             name="pure",
             path="output/pure/RobertaForSequenceClassificationPure_fold_3_epoch_5.pth",
-            # path="output/pure/",
-            dict_path="configs/train_pure_small.yaml",
             num_labels=len(EMOTION_LABELS),
         )
     )
@@ -139,8 +147,6 @@ else:
         ModelClass(
             name="deep",
             path="output/deep/RobertaForSequenceClassificationDeep_fold_2_epoch_8.pth",
-            # path="output/deep/",
-            dict_path="configs/train_deep_small.yaml",
             num_labels=len(EMOTION_LABELS),
         )
     )
@@ -148,8 +154,6 @@ else:
         ModelClass(
             name="mean",
             path="output/mean/RobertaForSequenceClassificationMeanPooling_fold_5_epoch_8.pth",
-            # path="output/mean/",
-            dict_path="configs/train_mean_small.yaml",
             num_labels=len(EMOTION_LABELS),
         )
     )
@@ -157,8 +161,6 @@ else:
         ModelClass(
             name="max",
             path="output/max/RobertaForSequenceClassificationMaxPooling_fold_3_epoch_8.pth",
-            # path="output/max/",
-            dict_path="configs/train_max_small.yaml",
             num_labels=len(EMOTION_LABELS),
         )
     )
@@ -166,8 +168,6 @@ else:
         ModelClass(
             name="attention",
             path="output/attention/RobertaForSequenceClassificationAttentionPooling_fold_5_epoch_7.pth",
-            # path="output/attention/",
-            dict_path="configs/train_attention_small.yaml",
             num_labels=len(EMOTION_LABELS),
         )
     )
@@ -187,12 +187,6 @@ else:
     # models.append(
     # ModelClass(name="Finetuned merged_dataset", path="output/merged-dataset/")
     # )  # finetuned with merged dataset """
-
-
-random.seed(42)
-torch.manual_seed(42)
-if torch.cuda.is_available():
-    torch.cuda.manual_seed_all(42)
 
 
 TOKENIZER_PATH = "models/roberta-base/"
@@ -458,12 +452,14 @@ def statistics():
     ax.set_ylim(0, 1)
 
     fig = plt.gcf()
-    # save the plot
 
+    # save the plot
     if USE_COMPLEXE_EMOTIONS:
         fig.savefig("evaluation_statistics_plot_complexe.png")
     else:
         fig.savefig("evaluation_statistics_plot.png")
+
+    plt.show()
 
 
 if __name__ == "__main__":
