@@ -66,7 +66,7 @@ EMOTION_LABELS = [
     "joy",
     "sadness",
     "surprise",
-    "disgust",
+    # "disgust",
     "none",
 ]
 

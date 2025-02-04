@@ -81,10 +81,13 @@ class ModelClass:
         self.model = select_model(
             name=name, backbone="roberta-base", num_labels=num_labels, device=device
         )
-        self.model.load_state_dict(
-            state_dict=torch.load(path, map_location=device),
-            strict=False,
-        )
+        checkpoint = torch.load(path)
+        self.model.load_state_dict(checkpoint["model_state_dict"])
+
+        # self.model.load_state_dict(
+        #     state_dict=torch.load(path, map_location=device),
+        #     strict=False,
+        # )
 
         self.model.eval()
 
