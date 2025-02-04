@@ -9,6 +9,8 @@ from torch import Tensor  # noqa
 from transformers import RobertaForSequenceClassification  # noqa
 from transformers import RobertaTokenizer
 
+import copy  # noqa
+
 from common import *  # noqa
 
 # ruff: noqa: F405
@@ -35,31 +37,29 @@ USE_COMPLEXE_EMOTIONS = False
 
 def select_model(name, backbone, num_labels, device):
     if name == "pure":
-        return RobertaForSequenceClassificationPure(backbone, num_labels).to(
-            device=device
-        )
+        return RobertaForSequenceClassificationPure(backbone, num_labels).to(device)
     elif name == "deep":
-        return RobertaForSequenceClassificationDeep(backbone, num_labels).to(
-            device=device
-        )
+        return RobertaForSequenceClassificationDeep(backbone, num_labels).to(device)
     elif name == "mean":
         return RobertaForSequenceClassificationMeanPooling(backbone, num_labels).to(
-            device=device
+            device
         )
     elif name == "max":
         return RobertaForSequenceClassificationMaxPooling(backbone, num_labels).to(
-            device=device
+            device
         )
     elif name == "attention":
         return RobertaForSequenceClassificationAttentionPooling(
             backbone, num_labels
-        ).to(device=device)
+        ).to(device)
     else:
         raise ValueError("Specified model name is not available!")
 
 
 class ModelClass:
-    def __init__(self, name: str, path: str, num_labels: int):
+    def __init__(
+        self, name: str, path: str, num_labels: int = None, dict_path: str = None
+    ):
         self.name: str = name
         self.path: str = path
 
@@ -69,75 +69,31 @@ class ModelClass:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.model = select_model(
-            name=name, backbone=path, num_labels=num_labels, device=device
+            name=name, backbone="roberta-base", num_labels=num_labels, device=device
         )
         self.model.load_state_dict(
-            torch.load(path, map_location=device, weights_only=True), strict=False
+            state_dict=torch.load(path, map_location=device),
+            strict=False,
         )
 
         self.model.eval()
 
-        self.percentage_correct: list[float] = []
-        self.percentage_correct_number = 0
-        self.tp = 0
-        self.fp = 0
-        self.tn = 0
-        self.fn = 0
+        stat_item = {
+            "tp": 0,
+            "fp": 0,
+            "tn": 0,
+            "fn": 0,
+        }
+        self.stats = {}
+        for emotion in EMOTION_LABELS:
+            self.stats[emotion] = copy.deepcopy(stat_item)
+
         self.precision = 0
         self.recall = 0
         self.accuracy = 0
-        self.f1_score = 0
-        self.labels = []
-        self.predictions = []
+        self.f1_score_micro = 0
         self.f1_score_macro = 0
         self.f1_score_weighted = 0
-
-
-def evaluate_answer(answer: set, solution: set, model: ModelClass = None) -> float:
-    """
-    Compares the final_answer and the solution and prints the results.
-    """
-
-    total = len(solution.union(answer))
-
-    true_negatives = 0
-    for element in EMOTION_LABELS:
-        if element not in solution and element not in answer:
-            true_negatives += 1
-
-    # Every instance that is in both final_answer and solution is correct
-    # Every instance that is in final_answer but not in solution is wrong
-    # Every instance that is in solution but not in final_answer is wrong
-
-    # get the intersection of the two sets and remove them from both sets
-    intersection = answer.intersection(solution)
-    true_positives = len(intersection)
-
-    answer -= intersection
-    solution -= intersection
-
-    false_positives = len(answer)
-    false_negatives = len(solution)
-
-    assert true_positives + false_positives + false_negatives == total
-
-    correct = true_positives / total * 100
-
-    if DEBUG_PRINT_STUFF:
-        print(
-            "Correct emotions:",
-            round(correct, None),
-            "%",
-        )
-
-    if model is not None:
-        model.percentage_correct.append(correct)
-        model.tp += true_positives
-        model.fp += false_positives
-        model.tn += true_negatives
-        model.fn += false_negatives
-
-    return correct
 
 
 def load_dataset(path: str) -> dict:
@@ -173,36 +129,46 @@ else:
     models.append(
         ModelClass(
             name="pure",
-            path="output/pure/",
-            num_labels=len(PROMPT_EXAMPLES.items()),
+            path="output/pure/RobertaForSequenceClassificationPure_fold_3_epoch_5.pth",
+            # path="output/pure/",
+            dict_path="configs/train_pure_small.yaml",
+            num_labels=len(EMOTION_LABELS),
         )
     )
     models.append(
         ModelClass(
             name="deep",
-            path="output/deep/",
-            num_labels=len(PROMPT_EXAMPLES.items()),
+            path="output/deep/RobertaForSequenceClassificationDeep_fold_2_epoch_8.pth",
+            # path="output/deep/",
+            dict_path="configs/train_deep_small.yaml",
+            num_labels=len(EMOTION_LABELS),
         )
     )
     models.append(
         ModelClass(
             name="mean",
-            path="output/mean/",
-            num_labels=len(PROMPT_EXAMPLES.items()),
+            path="output/mean/RobertaForSequenceClassificationMeanPooling_fold_5_epoch_8.pth",
+            # path="output/mean/",
+            dict_path="configs/train_mean_small.yaml",
+            num_labels=len(EMOTION_LABELS),
         )
     )
     models.append(
         ModelClass(
             name="max",
-            path="output/max/",
-            num_labels=len(PROMPT_EXAMPLES.items()),
+            path="output/max/RobertaForSequenceClassificationMaxPooling_fold_3_epoch_8.pth",
+            # path="output/max/",
+            dict_path="configs/train_max_small.yaml",
+            num_labels=len(EMOTION_LABELS),
         )
     )
     models.append(
         ModelClass(
             name="attention",
-            path="output/attention/",
-            num_labels=len(PROMPT_EXAMPLES.items()),
+            path="output/attention/RobertaForSequenceClassificationAttentionPooling_fold_5_epoch_7.pth",
+            # path="output/attention/",
+            dict_path="configs/train_attention_small.yaml",
+            num_labels=len(EMOTION_LABELS),
         )
     )
 
@@ -223,9 +189,6 @@ else:
     # )  # finetuned with merged dataset """
 
 
-DEBUG_PRINT_ALL_PROBABILITIES = False
-DEBUG_PRINT_STUFF = False
-
 random.seed(42)
 torch.manual_seed(42)
 if torch.cuda.is_available():
@@ -238,27 +201,14 @@ TOKENIZER_PATH = "models/roberta-base/"
 def prompt():
     tokenizer = RobertaTokenizer.from_pretrained(TOKENIZER_PATH, cache_dir="cache-dir/")
 
-    statistics_correct_voting_table: list[float] = []
-
     length = len(PROMPT_EXAMPLES.items())
     print_checkpoint = length // 10
     i = 1
-
-    overall_labels = []
-    overall_predictions = []
 
     for prompt, solution in PROMPT_EXAMPLES.items():
         if i % print_checkpoint == 0:
             print(f"Progress: {i}/{length}")
         i += 1
-
-        if DEBUG_PRINT_STUFF:
-            print(" ")
-            print("-" * 50)
-            print(f"Prompt: {prompt}")
-            print(" ")
-
-        overall_labels.append(solution)
 
         voting_table = {}
 
@@ -269,23 +219,20 @@ def prompt():
             for emotion in EMOTION_LABELS:
                 voting_table[emotion] = 0
 
-        for run, current_model in enumerate(models):
+        for current_model in models:
             assert isinstance(current_model, ModelClass)
-
-            if DEBUG_PRINT_STUFF:
-                print("Run:", run + 1, "with model:", current_model.name)
 
             # Tokenize the input
             inputs = tokenizer(
                 prompt, return_tensors="pt", truncation=True, padding=True
-            ).to(current_model.model.device)
+            ).to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
             # Perform inference
             with torch.no_grad():
                 outputs: Tensor = current_model.model(**inputs)
 
             # Get predicted probabilities
-            probabilities = torch.sigmoid(outputs.logits)
+            probabilities = torch.sigmoid(outputs)
 
             # Apply threshold
             predicted_labels = (probabilities > THRESHOLD).int().squeeze().tolist()
@@ -314,30 +261,21 @@ def prompt():
             )  # There must always be at least one emotion predicted
             assert ("none" not in predicted_emotions) or (len(predicted_emotions) == 1)
 
-            current_model.labels.append(solution)
-            current_model.predictions.append(predicted_emotions)
-
             for emotion in predicted_emotions:
                 voting_table[emotion] += 1
 
             # Create individual statistics for each model
-            evaluate_answer(set(predicted_emotions), set(solution), current_model)
-
-            if DEBUG_PRINT_ALL_PROBABILITIES:
-                print("Probabilities:")
-                if USE_COMPLEXE_EMOTIONS:
-                    for label, prob in zip(
-                        EMOTION_COMPLEX_LABELS, probabilities.squeeze().tolist()
-                    ):
-                        print(f"  {label}: {prob:.3f}")
+            for emotion in EMOTION_LABELS:
+                if emotion in predicted_emotions and emotion in solution:
+                    current_model.stats[emotion]["tp"] += 1
+                elif emotion in predicted_emotions and emotion not in solution:
+                    current_model.stats[emotion]["fp"] += 1
+                elif emotion not in predicted_emotions and emotion in solution:
+                    current_model.stats[emotion]["fn"] += 1
+                elif emotion not in predicted_emotions and emotion not in solution:
+                    current_model.stats[emotion]["tn"] += 1
                 else:
-                    for label, prob in zip(
-                        EMOTION_LABELS, probabilities.squeeze().tolist()
-                    ):
-                        print(f"  {label}: {prob:.3f}")
-            if DEBUG_PRINT_STUFF:
-                print(f"Predicted Emotion: {predicted_emotions}")
-                print(" ")
+                    raise ValueError("Invalid state")
 
         # Go through all results and find the set of emotions that at least half of the models predicted
         final_answer = []
@@ -363,87 +301,82 @@ def prompt():
         )  # There must always be at least one emotion predicteds
         assert ("none" not in final_answer) or (len(final_answer) == 1)
 
-        overall_predictions.append(final_answer)
 
-        if DEBUG_PRINT_STUFF:
-            print("Voting table:", voting_table)
-            print("\nExpected answer:", solution)
+def validate():
+    # check if the values makes sence
+    total = len(PROMPT_EXAMPLES.items()) * len(EMOTION_LABELS)
+    for model in models:
+        sum = 0
+        for emotion in EMOTION_LABELS:
+            sum += (
+                model.stats[emotion]["tp"]
+                + model.stats[emotion]["fp"]
+                + model.stats[emotion]["tn"]
+                + model.stats[emotion]["fn"]
+            )
+        if sum != total:
+            print("Total: ", total)
+            print("Sum: ", sum)
+            raise ValueError("Invalid state")
 
-            final_answer_text = "Final answer:"
 
-            if not final_answer:
-                print(final_answer_text, "none")
-            else:
-                print(final_answer_text, final_answer)
-
-        statistics_correct_voting_table.append(
-            evaluate_answer(set(final_answer), set(solution), None)
-        )
-
-    statistics(statistics_correct_voting_table, overall_labels, overall_predictions)
-
-
-def statistics(
-    statistics_correct_voting_table: list[float],
-    overall_labels: list,
-    overall_predictions: list,
-):
+def statistics():
     output_data: list[str] = []
 
     # Calculate statistics
     print(" ")
     output_data.append("Statistics:")
-    percentage = sum(statistics_correct_voting_table) / len(
-        statistics_correct_voting_table
-    )
-    total_tp = 0
-    total_fp = 0
-    total_tn = 0
-    total_fn = 0
-    for model in models:
-        total_tp += model.tp
-        total_fp += model.fp
-        total_tn += model.tn
-        total_fn += model.fn
-    precision = get_precision(tp=total_tp, fp=total_fp)
-    recall = get_recall(tp=total_tp, fn=total_fn)
-    f1_score = get_f1_score(precision=precision, recall=recall)
-    accuracy = get_accuracy(tp=total_tp, fp=total_fp, tn=total_tn, fn=total_fn)
-    f1_score_macro = get_f1_score_macro(overall_labels, overall_predictions)
-    f1_score_weighted = get_f1_score_weighted(overall_labels, overall_predictions)
-    output_data.append("Precision overall: " + str(precision))
-    output_data.append("Recall overall: " + str(recall))
-    output_data.append("Accuracy overall: " + str(accuracy))
-    output_data.append("F1-Score overall: " + str(f1_score))
-    output_data.append("F1-Score macro overall: " + str(f1_score_macro))
-    output_data.append("F1-Score weighted overall: " + str(f1_score_weighted))
 
-    output_data.append("Average correct emotions: " + str(round(percentage, 2)) + "%")
-    output_data.append(" ")
     for model in models:
+        print(model.name, model.stats)
+
         output_data.append(f"Model '{model.name}':")
-        model.percentage_correct_number = sum(model.percentage_correct) / len(
-            model.percentage_correct
-        )
-        output_data.append(
-            "Percentage correct: "
-            + str(round(model.percentage_correct_number, 2))
-            + "%",
-        )
-        model.precision = get_precision(tp=model.tp, fp=model.fp)
-        model.recall = get_recall(tp=model.tp, fn=model.fn)
-        model.f1_score = get_f1_score(precision=model.precision, recall=model.recall)
-        model.accuracy = get_accuracy(
-            tp=model.tp, fp=model.fp, tn=model.tn, fn=model.fn
-        )
-        model.f1_score_macro = get_f1_score_macro(model.labels, model.predictions)
-        model.f1_score_weighted = get_f1_score_weighted(model.labels, model.predictions)
+
+        accuracies = []
+        precisions = []
+        recalls = []
+        f1_scores_macro = []
+        support = []
+        f1_scores_weighted = []
+
+        tps = 0
+        tns = 0
+        fps = 0
+        fns = 0
+
+        for emotion in EMOTION_LABELS:
+            tp = model.stats[emotion]["tp"]
+            tps += tp
+            fp = model.stats[emotion]["fp"]
+            fps += fp
+            tn = model.stats[emotion]["tn"]
+            tns += tn
+            fn = model.stats[emotion]["fn"]
+            fns += fn
+
+            f1 = get_f1_score(tp=tp, fp=fp, fn=fn)
+
+            f1_scores_macro.append(f1)
+            accuracies.append(get_accuracy(tp=tp, fp=fp, tn=tn, fn=fn))
+            precisions.append(get_precision(tp=tp, fp=fp))
+            recalls.append(get_recall(tp=tp, fn=fn))
+
+            support.append(tp + fn)
+            f1_scores_weighted.append(f1 * (tp + fn))
+
+        model.precision = round(sum(precisions) / len(precisions), 2)
+        model.recall = round(sum(recalls) / len(recalls), 2)
+        model.accuracy = round(sum(accuracies) / len(accuracies), 2)
+        model.f1_score_micro = round(get_f1_score(tp=tps, fp=fps, fn=fns), 2)
+        model.f1_score_macro = round(sum(f1_scores_macro) / len(f1_scores_macro), 2)
+        model.f1_score_weighted = round(sum(f1_scores_weighted) / sum(support), 2)
+
         output_data.append("Precision: " + str(model.precision))
         output_data.append("Recall: " + str(model.recall))
-        output_data.append("F1-Score: " + str(model.f1_score))
-        output_data.append("Accuracy: " + str(model.accuracy))
+        output_data.append("F1-Score micro: " + str(model.f1_score_micro))
         output_data.append("F1-Score macro: " + str(model.f1_score_macro))
         output_data.append("F1-Score weighted: " + str(model.f1_score_weighted))
+        output_data.append("Accuracy: " + str(model.accuracy))
         output_data.append(" ")
 
     # Print statistics
@@ -463,19 +396,10 @@ def statistics(
     plt.figure()
 
     model_names = [model.name for model in models]
-    # model_names.append("Overall")
-    # precisions = [model.precision for model in models]
-    # precisions.append(precision)
-    # recalls = [model.recall for model in models]
-    # recalls.append(recall)
-    # f1_scores = [model.f1_score for model in models]
-    # f1_scores.append(f1_score)
     accuracies = [model.accuracy for model in models]
-    # accuracies.append(accuracy)
+    f1_scores_micro = [model.f1_score_micro for model in models]
     f1_scores_macro = [model.f1_score_macro for model in models]
-    # f1_scores_macro.append(f1_score_macro)
     f1_scores_weighted = [model.f1_score_weighted for model in models]
-    # f1_scores_weighted.append(f1_score_weighted)
 
     x = np.arange(len(model_names))  # the label locations
     width = 0.15  # the width of the bars
@@ -485,14 +409,10 @@ def statistics(
     # Plot the bars sequentially
     bar_positions = x
 
-    # rects1 = ax.bar(bar_positions, precisions, width, label="Precision")
-    # bar_positions = [p + width for p in bar_positions]
-    # rects2 = ax.bar(bar_positions, recalls, width, label="Recall")
-    # bar_positions = [p + width for p in bar_positions]
     rects3 = ax.bar(bar_positions, accuracies, width, label="Accuracy")
     bar_positions = [p + width for p in bar_positions]
-    # rects4 = ax.bar(bar_positions, f1_scores, width, label="F1-Score")
-    # bar_positions = [p + width for p in bar_positions]
+    rects4 = ax.bar(bar_positions, f1_scores_micro, width, label="F1-Score micro")
+    bar_positions = [p + width for p in bar_positions]
     rects5 = ax.bar(bar_positions, f1_scores_macro, width, label="F1-Score macro")
     bar_positions = [p + width for p in bar_positions]
     rects6 = ax.bar(bar_positions, f1_scores_weighted, width, label="F1-Score weighted")
@@ -524,7 +444,7 @@ def statistics(
     # autolabel(rects1)
     # autolabel(rects2)
     autolabel(rects3)
-    # autolabel(rects4)
+    autolabel(rects4)
     autolabel(rects5)
     autolabel(rects6)
 
@@ -548,7 +468,5 @@ def statistics(
 
 if __name__ == "__main__":
     prompt()
-    if DEBUG_PRINT_STUFF:
-        print(" ")
-        print("-" * 50)
-        print(" ")
+    validate()
+    statistics()

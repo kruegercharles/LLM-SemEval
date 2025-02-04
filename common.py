@@ -93,99 +93,29 @@ EMOTION_COMPLEX_LABELS = [
 
 
 def get_precision(tp: int, fp: int) -> float:
-    return round(tp / (tp + fp), 2)
+    if tp + fp == 0:
+        return 0
+    return tp / (tp + fp)
 
 
 def get_recall(tp: int, fn: int) -> float:
-    return round(tp / (tp + fn), 2)
+    if tp + fn == 0:
+        return 0
+    return tp / (tp + fn)
 
 
-def get_f1_score(precision: int, recall: int) -> float:
-    return round(2 * (precision * recall) / (precision + recall), 2)
+def get_f1_score(tp: int, fp: int, fn: int) -> float:
+    precision = get_precision(tp, fp)
+    recall = get_recall(tp, fn)
+    if precision + recall == 0:
+        return 0
+    return 2 * (precision * recall) / (precision + recall)
 
 
 def get_accuracy(tp: int, fp: int, tn: int, fn: int) -> float:
-    return round((tp + tn) / (tp + fp + tn + fn), 2)
-
-
-def get_f1_score_macro(labels, predicitions) -> float:
-    assert len(labels) == len(predicitions)
-
-    f1_scores = []
-
-    for label, prediction in zip(labels, predicitions):
-        solution = set(label)
-        answer = set(prediction)
-
-        total = len(solution.union(answer))
-
-        true_negatives = 0
-        for element in EMOTION_LABELS:
-            if element not in solution and element not in answer:
-                true_negatives += 1
-
-        # get the intersection of the two sets and remove them from both sets
-        intersection = answer.intersection(solution)
-        true_positives = len(intersection)
-
-        answer -= intersection
-        solution -= intersection
-
-        false_positives = len(answer)
-        false_negatives = len(solution)
-
-        assert true_positives + false_positives + false_negatives == total
-
-        f1_scores.append(
-            true_positives
-            / (true_positives + 0.5 * (false_positives + false_negatives))
-        )
-
-    return round(sum(f1_scores) / len(f1_scores), 2)
-
-
-def get_f1_score_weighted(labels, predicitions) -> float:
-    assert len(labels) == len(predicitions)
-
-    f1_scores = []
-    support = []
-
-    for label, prediction in zip(labels, predicitions):
-        solution = set(label)
-        answer = set(prediction)
-
-        total = len(solution.union(answer))
-
-        true_negatives = 0
-        for element in EMOTION_LABELS:
-            if element not in solution and element not in answer:
-                true_negatives += 1
-
-        # get the intersection of the two sets and remove them from both sets
-        intersection = answer.intersection(solution)
-        true_positives = len(intersection)
-
-        answer -= intersection
-        solution -= intersection
-
-        false_positives = len(answer)
-        false_negatives = len(solution)
-
-        assert true_positives + false_positives + false_negatives == total
-
-        f1_scores.append(
-            true_positives
-            / (true_positives + 0.5 * (false_positives + false_negatives))
-        )
-
-        support.append(true_positives + false_negatives)
-
-    weighted = 0
-
-    for i in range(len(labels)):
-        weighted += support[i] * f1_scores[i]
-
-    return round(weighted / sum(support), 2)
+    if tp + fp + tn + fn == 0:
+        return 0
+    return (tp + tn) / (tp + fp + tn + fn)
 
 
 class RobertaForSequenceClassificationAttentionPooling(nn.Module):
