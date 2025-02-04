@@ -199,6 +199,8 @@ def prompt():
     print_checkpoint = length // 10
     i = 1
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     for prompt, solution in PROMPT_EXAMPLES.items():
         if i % print_checkpoint == 0:
             print(f"Progress: {i}/{length}")
@@ -219,7 +221,7 @@ def prompt():
             # Tokenize the input
             inputs = tokenizer(
                 prompt, return_tensors="pt", truncation=True, padding=True
-            ).to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+            ).to(device)
 
             # Perform inference
             with torch.no_grad():
@@ -298,20 +300,22 @@ def prompt():
 
 def validate():
     # check if the values makes sence
-    total = len(PROMPT_EXAMPLES.items()) * len(EMOTION_LABELS)
+    total = len(PROMPT_EXAMPLES.items())
     for model in models:
-        sum = 0
         for emotion in EMOTION_LABELS:
-            sum += (
+            sum = (
                 model.stats[emotion]["tp"]
                 + model.stats[emotion]["fp"]
                 + model.stats[emotion]["tn"]
                 + model.stats[emotion]["fn"]
             )
-        if sum != total:
-            print("Total: ", total)
-            print("Sum: ", sum)
-            raise ValueError("Invalid state")
+            if sum != total:
+                print("Model: ", model.name)
+                print("State: ", model.stats)
+                print("Emotion: ", emotion)
+                print("Total: ", total)
+                print("Sum: ", sum)
+                raise ValueError("Invalid state")
 
 
 def statistics():
