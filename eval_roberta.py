@@ -10,7 +10,6 @@ from transformers import RobertaForSequenceClassification  # noqa
 from transformers import RobertaTokenizer
 
 from common import *  # noqa
-from models.lm_classifier import *
 
 # ruff: noqa: F405
 
@@ -67,10 +66,13 @@ class ModelClass:
         if not os.path.exists(path):
             raise FileNotFoundError(f"Model {path} not found.")
 
-        device = search_available_devices()
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.model = select_model(
             name=name, backbone=path, num_labels=num_labels, device=device
+        )
+        self.model.load_state_dict(
+            torch.load(path, map_location=device, weights_only=True), strict=False
         )
 
         self.model.eval()
@@ -171,35 +173,35 @@ else:
     models.append(
         ModelClass(
             name="pure",
-            path="output/RobertaForSequenceClassificationPure_fold_3_epoch_5.pth",
+            path="output/pure/",
             num_labels=len(PROMPT_EXAMPLES.items()),
         )
     )
     models.append(
         ModelClass(
             name="deep",
-            path="output/RobertaForSequenceClassificationDeep_fold_2_epoch_8.pth",
+            path="output/deep/",
             num_labels=len(PROMPT_EXAMPLES.items()),
         )
     )
     models.append(
         ModelClass(
             name="mean",
-            path="output/RobertaForSequenceClassificationMeanPooling_fold_5_epoch_8.pth",
+            path="output/mean/",
             num_labels=len(PROMPT_EXAMPLES.items()),
         )
     )
     models.append(
         ModelClass(
             name="max",
-            path="output/RobertaForSequenceClassificationMaxPooling_fold_3_epoch_8.pth",
+            path="output/max/",
             num_labels=len(PROMPT_EXAMPLES.items()),
         )
     )
     models.append(
         ModelClass(
             name="attention",
-            path="output/RobertaForSequenceClassificationAttentionPooling_fold_5_epoch_7.pth",
+            path="output/attention/",
             num_labels=len(PROMPT_EXAMPLES.items()),
         )
     )
