@@ -3,7 +3,7 @@ backbone: 'roberta-base'
 data: '../data/eng_a_parsed.json'
 model_path: '../outputs/models'
 stat_path: '../outputs/statistics'
-test: 'a'
+test: 'c'
 weighted: True
 mapping: reduced
 num_labels: 6

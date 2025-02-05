@@ -69,7 +69,7 @@ def f1_score(tp, fp, fn):
     
 def class_weights(idx, task, data_path):
 
-    if task == 'a':
+    if task == 'a' or task == 'c':
         label_mapping = {
                 'anger' : 0,
                 'fear' : 1,

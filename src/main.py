@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.optim as optim
 from omegaconf import DictConfig, OmegaConf
 from misc.misc import search_available_devices, init_confusion, accuracy, precision, recall, f1_score, class_weights
-from data.dataset import EmotionData, IntensityData
+from data.dataset import EmotionData, IntensityData, EmotionDataAdvanced
 from models.lm_classifier import *
 
 def select_model(name, backbone, num_labels, device):
@@ -32,7 +32,7 @@ def select_model(name, backbone, num_labels, device):
         raise ValueError('Specified model name is not available!')
 
 
-def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader, optimizer, criterion, device, model_path, stat_path):
+def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader, optimizer, criterion, device, model_path, stat_path, special=False):
 
     train_losses, val_losses, test_losses = list(), list(), list()
 
@@ -111,7 +111,11 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
         for batch in train_loader:
             input_ids, attention_mask, labels = batch['input_ids'].to(device), batch['attention_mask'].to(device), batch['labels'].to(device)
             optimizer.zero_grad()
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+            if special:
+                add_vec = batch['vec'].to(device)
+                outputs = model(add_vec, input_ids=input_ids, attention_mask=attention_mask)
+            else:
+                outputs = model(input_ids=input_ids, attention_mask=attention_mask)
             # convert output to binary format
             bin_out = torch.where(torch.sigmoid(outputs) >=0.5, torch.tensor(1.0), torch.tensor(0.0))
             # collect confusion statistics:
@@ -173,7 +177,11 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
             print(f'Start Validation Epoch {epoch+1}.')
             for batch in val_loader:
                 input_ids, attention_mask, labels = batch['input_ids'].to(device), batch['attention_mask'].to(device), batch['labels'].to(device)
-                outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+                if special:
+                    add_vec = batch['vec'].to(device)
+                    outputs = model(add_vec, input_ids=input_ids, attention_mask=attention_mask)
+                else:
+                    outputs = model(input_ids=input_ids, attention_mask=attention_mask)
                 # convert output to binary format
                 bin_out = torch.where(torch.sigmoid(outputs) >=0.5, torch.tensor(1.0), torch.tensor(0.0))
                 # collect confusion statistics:
@@ -233,7 +241,11 @@ def train(fold, epochs, num_labels, model, train_loader, val_loader, test_loader
             print(f'Start Testing on Test Dataset!')
             for batch in test_loader:
                 input_ids, attention_mask, labels = batch['input_ids'].to(device), batch['attention_mask'].to(device), batch['labels'].to(device)
-                outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+                if special:
+                    add_vec = batch['vec'].to(device)
+                    outputs = model(add_vec, input_ids=input_ids, attention_mask=attention_mask)
+                else:
+                    outputs = model(input_ids=input_ids, attention_mask=attention_mask)
                 # convert output to binary format
                 bin_out = torch.where(torch.sigmoid(outputs) >=0.5, torch.tensor(1.0), torch.tensor(0.0))
                 # collect confusion statistics:
@@ -301,6 +313,9 @@ def cross_validation(cfg: DictConfig):
     elif cfg.test == 'b':
         dataset = IntensityData(os.path.join(os.path.dirname(__file__), cfg.data), cfg.backbone)
         test_dataset = IntensityData(os.path.join(os.path.dirname(__file__), '../data/eng_b_parsed_test.json'), cfg.backbone)
+    elif cfg.test == 'c':
+        dataset = EmotionDataAdvanced(os.path.join(os.path.dirname(__file__), cfg.data), cfg.backbone, cfg.mapping)
+        test_dataset = EmotionDataAdvanced(os.path.join(os.path.dirname(__file__), '../data/eng_a_parsed_test.json'), cfg.backbone, cfg.mapping)
     
     
     for fold, (train_idx, val_idx) in enumerate(kfold.split(np.arange(len(dataset)))):
@@ -326,7 +341,10 @@ def cross_validation(cfg: DictConfig):
         optimizer = optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=0.01)
         criterion = nn.BCEWithLogitsLoss().to(device=device)
 
-        train(fold+1, cfg.epochs, cfg.num_labels, model, train_loader, val_loader, test_loader, optimizer, criterion, device, cfg.model_path, cfg.stat_path)
+        if cfg.test == 'c':
+            train(fold+1, cfg.epochs, cfg.num_labels, model, train_loader, val_loader, test_loader, optimizer, criterion, device, cfg.model_path, cfg.stat_path, True)
+        else:
+            train(fold+1, cfg.epochs, cfg.num_labels, model, train_loader, val_loader, test_loader, optimizer, criterion, device, cfg.model_path, cfg.stat_path)
 
 if __name__ == '__main__':
     # init parser

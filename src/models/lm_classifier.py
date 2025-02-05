@@ -139,25 +139,27 @@ class MeanMaxAttentionPooling(nn.Module):
         return torch.cat([mean_pooling, max_pooling, attention_pooling], dim=1)
     
 class PoolingRoberta(nn.Module):
-    def __init__(self, bacbbone, num_classes):
+    def __init__(self, backbone, num_classes):
         super(PoolingRoberta, self).__init__()
         self.name = "PoolingRoberta"
-        self.backbone = RobertaModel.from_pretrained(bacbbone)
+        self.backbone = RobertaModel.from_pretrained(backbone)
         self.pooling = MeanMaxAttentionPooling(hidden_dim=768).to('cuda' if torch.cuda.is_available() else 'cpu')
-        self.reduce_pool = nn.Sequential(
-            nn.Linear(768 *3 , 768),
-            nn.ReLU()
+        self.pre_classify_pooling = nn.Sequential(
+            nn.Linear(768 * 3, 768),
+            nn.LayerNorm(768)
         )
         self.clasifier = nn.Sequential(
-            nn.Linear(768 * 4, 768),
+            nn.Linear(768 + (num_classes-1), 512),
             nn.ReLU(),
-            nn.LayerNorm(768),
-            nn.Linear(768, num_classes)
+            nn.LayerNorm(512),
+            nn.Linear(512, num_classes)
         )
     
-    def forward(self, input_ids, attention_mask):
+    def forward(self, add_vec, input_ids, attention_mask):
         outputs = self.backbone(input_ids, attention_mask, output_hidden_states=True)
         hidden_states = outputs.hidden_states[-4:]
-        aggregated_hidden_states = torch.cat([self.reduce_pool(self.pooling(hidden_states[i], attention_mask)) for i in range(4)], dim=1)
-        out = self.clasifier(aggregated_hidden_states)
+        aggregated_hidden_states = torch.mean(torch.stack(hidden_states, dim=0), dim=0)
+        pooled_output = self.pooling(aggregated_hidden_states, attention_mask)
+        pooled_output = self.pre_classify_pooling(pooled_output)
+        out = self.clasifier(torch.cat([pooled_output, add_vec], dim=1))
         return out
