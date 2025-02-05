@@ -133,7 +133,7 @@ def load_dataset(path: str) -> dict:
     return dataset
 
 
-def get_human_feedback(sentence: str) -> list[str]:
+def get_human_feedback() -> list[str]:
     """
     This function is used to get human feedback for the predictions.
     """
@@ -141,9 +141,12 @@ def get_human_feedback(sentence: str) -> list[str]:
     human_answer = []
 
     print("What emotions do you think are expressed in this sentence?")
-    print(
-        "[1] anger, [2] fear, [3] joy, [4] sadness, [5] surprise, [6] none\n[f] finish answer, [r] restart answer\n"
-    )
+
+    text = ""
+    for emotion in EMOTION_LABELS:
+        text += f"[{EMOTION_LABELS.index(emotion) + 1}] {emotion}, "
+    print(text[:-2])
+    print("[f] finish answer, [r] restart answer\n")
 
     while True:
         human_input = input()
@@ -152,24 +155,26 @@ def get_human_feedback(sentence: str) -> list[str]:
             if human_input == "f":
                 break
             if human_input == "r":
-                human_answer = []
+                human_answer.clear()
                 continue
 
-            human_input = int(human_input)
+            emotion = EMOTION_LABELS[int(human_input) - 1]
 
-            if human_input < 1 or human_input > 6:
+            if emotion == "none" and len(human_answer) > 0:
+                print(
+                    "You can only select 'none' if no other emotion was selected, restarting"
+                )
+                human_answer.clear()
                 continue
-            if human_input == 6 and len(human_answer) > 0:
-                continue
-            if human_input == 6:
+            if emotion == "none":
                 human_answer.append("none")
                 break
 
             # if answer already in list, continue
-            if EMOTION_LABELS[human_input - 1] in human_answer:
+            if emotion in human_answer:
                 continue
 
-            human_answer.append(EMOTION_LABELS[human_input - 1])
+            human_answer.append(EMOTION_LABELS[int(human_input) - 1])
 
         except:  # noqa: E722
             continue
@@ -282,7 +287,7 @@ def prompt():
         print(run, '- Sentence: "' + prompt + '"')
         run += 1
 
-        human_answer = get_human_feedback(prompt)
+        human_answer = get_human_feedback()
 
         for emotion in EMOTION_LABELS:
             if emotion in human_answer and emotion in solution:
@@ -336,7 +341,7 @@ def prompt():
             for emotion in predicted_emotions:
                 voting_table[emotion] += 1
 
-            print("Voting Table Models:", voting_table)
+            # print("Voting Table Models:", voting_table)
 
             # Create individual statistics for each model
             for emotion in EMOTION_LABELS:
@@ -401,7 +406,7 @@ def prompt():
 
 def validate(human: Human, overall: EnsembleVoting):
     # check if the values makes sence
-    total = len(PROMPT_EXAMPLES.items())
+    total = RUNS_TO_PROMT
     for model in models:
         for emotion in EMOTION_LABELS:
             sum = (
@@ -500,10 +505,10 @@ def statistics(human: Human, overall: EnsembleVoting):
 
     output_data.append("Human Precision: " + str(human.precision))
     output_data.append("Human Recall: " + str(human.recall))
+    output_data.append("Human Accuracy: " + str(human.accuracy))
     output_data.append("Human F1-Score micro: " + str(human.f1_score_micro))
     output_data.append("Human F1-Score macro: " + str(human.f1_score_macro))
     output_data.append("Human F1-Score weighted: " + str(human.f1_score_weighted))
-    output_data.append("Human Accuracy: " + str(human.accuracy))
     output_data.append(" ")
 
     output_data.append(f"Overall '{overall.name}':")
@@ -549,10 +554,10 @@ def statistics(human: Human, overall: EnsembleVoting):
 
     output_data.append("Overall Precision: " + str(overall.precision))
     output_data.append("Overall Recall: " + str(overall.recall))
+    output_data.append("Overall Accuracy: " + str(overall.accuracy))
     output_data.append("Overall F1-Score micro: " + str(overall.f1_score_micro))
     output_data.append("Overall F1-Score macro: " + str(overall.f1_score_macro))
     output_data.append("Overall F1-Score weighted: " + str(overall.f1_score_weighted))
-    output_data.append("Overall Accuracy: " + str(overall.accuracy))
     output_data.append(" ")
 
     for model in models:
@@ -601,10 +606,12 @@ def statistics(human: Human, overall: EnsembleVoting):
 
         output_data.append("Precision: " + str(model.precision))
         output_data.append("Recall: " + str(model.recall))
+        output_data.append("Accuracy: " + str(model.accuracy))
         output_data.append("F1-Score micro: " + str(model.f1_score_micro))
         output_data.append("F1-Score macro: " + str(model.f1_score_macro))
         output_data.append("F1-Score weighted: " + str(model.f1_score_weighted))
-        output_data.append("Accuracy: " + str(model.accuracy))
+        output_data.append(" ")
+        output_data.append("*" * 50)
         output_data.append(" ")
 
     # Print statistics
