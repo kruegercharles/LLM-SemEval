@@ -1,0 +1,18 @@
+Statistics:
+Precision overall: 0.34
+Recall overall: 0.23
+Accuracy overall: 0.78
+F1-Score overall: 0.27
+F1-Score macro overall: 0.27
+F1-Score weighted overall: 0.27
+Average correct emotions: 23.49%
+ 
+Model 'SemEval complexe':
+Percentage correct: 23.49%
+Precision: 0.34
+Recall: 0.23
+F1-Score: 0.27
+Accuracy: 0.78
+F1-Score macro: 0.27
+F1-Score weighted: 0.27
+ 

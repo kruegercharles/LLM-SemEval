@@ -6,3 +6,8 @@ matplotlib
 hydra-core
 omegaconf
 scikit-learn
+fairscale
+fire
+tiktoken==0.4.0
+blobfile
+ipywidgets
