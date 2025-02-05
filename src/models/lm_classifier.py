@@ -143,23 +143,18 @@ class PoolingRoberta(nn.Module):
         super(PoolingRoberta, self).__init__()
         self.name = "PoolingRoberta"
         self.backbone = RobertaModel.from_pretrained(backbone)
-        self.pooling = MeanMaxAttentionPooling(hidden_dim=768).to('cuda' if torch.cuda.is_available() else 'cpu')
-        self.pre_classify_pooling = nn.Sequential(
-            nn.Linear(768 * 3, 768),
-            nn.LayerNorm(768)
-        )
         self.clasifier = nn.Sequential(
             nn.Linear(768 + (num_classes-1), 512),
             nn.ReLU(),
-            nn.LayerNorm(512),
+            nn.Dropout(0.1),
             nn.Linear(512, num_classes)
         )
     
     def forward(self, add_vec, input_ids, attention_mask):
         outputs = self.backbone(input_ids, attention_mask, output_hidden_states=True)
-        hidden_states = outputs.hidden_states[-4:]
-        aggregated_hidden_states = torch.mean(torch.stack(hidden_states, dim=0), dim=0)
-        pooled_output = self.pooling(aggregated_hidden_states, attention_mask)
-        pooled_output = self.pre_classify_pooling(pooled_output)
-        out = self.clasifier(torch.cat([pooled_output, add_vec], dim=1))
+        hidden_states = torch.stack(outputs.hidden_states[-4:])
+        cls_embeddings = hidden_states[:, :, 0, :]
+        cls_embeddings = torch.mean(cls_embeddings, dim=0)
+        cls_embeddings = torch.cat([add_vec, cls_embeddings], dim=1)
+        out = self.clasifier(cls_embeddings)
         return out
