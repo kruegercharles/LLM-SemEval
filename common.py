@@ -118,6 +118,27 @@ def get_accuracy(tp: int, fp: int, tn: int, fn: int) -> float:
     return (tp + tn) / (tp + fp + tn + fn)
 
 
+def select_model(name, backbone, num_labels, device):
+    if name == "pure":
+        return RobertaForSequenceClassificationPure(backbone, num_labels).to(device)
+    elif name == "deep":
+        return RobertaForSequenceClassificationDeep(backbone, num_labels).to(device)
+    elif name == "mean":
+        return RobertaForSequenceClassificationMeanPooling(backbone, num_labels).to(
+            device
+        )
+    elif name == "max":
+        return RobertaForSequenceClassificationMaxPooling(backbone, num_labels).to(
+            device
+        )
+    elif name == "attention":
+        return RobertaForSequenceClassificationAttentionPooling(
+            backbone, num_labels
+        ).to(device)
+    else:
+        raise ValueError("Specified model name is not available!")
+
+
 class RobertaForSequenceClassificationAttentionPooling(nn.Module):
     def __init__(self, backbone, num_classes):
         super(RobertaForSequenceClassificationAttentionPooling, self).__init__()

@@ -42,33 +42,11 @@ np.random.seed(42)
 USE_COMPLEXE_EMOTIONS = False
 
 
-def select_model(name, backbone, num_labels, device):
-    if name == "pure":
-        return RobertaForSequenceClassificationPure(backbone, num_labels).to(device)
-    elif name == "deep":
-        return RobertaForSequenceClassificationDeep(backbone, num_labels).to(device)
-    elif name == "mean":
-        return RobertaForSequenceClassificationMeanPooling(backbone, num_labels).to(
-            device
-        )
-    elif name == "max":
-        return RobertaForSequenceClassificationMaxPooling(backbone, num_labels).to(
-            device
-        )
-    elif name == "attention":
-        return RobertaForSequenceClassificationAttentionPooling(
-            backbone, num_labels
-        ).to(device)
-    else:
-        raise ValueError("Specified model name is not available!")
-
-
 class ModelClass:
     def __init__(
         self,
         name: str,
         path: str,
-        num_labels: int = None,
     ):
         self.name: str = name
         self.path: str = path
@@ -77,17 +55,13 @@ class ModelClass:
             raise FileNotFoundError(f"Model {path} not found.")
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        num_labels = len(EMOTION_LABELS)
 
         self.model = select_model(
             name=name, backbone="roberta-base", num_labels=num_labels, device=device
         )
         checkpoint = torch.load(path)
         self.model.load_state_dict(checkpoint["model_state_dict"])
-
-        # self.model.load_state_dict(
-        #     state_dict=torch.load(path, map_location=device),
-        #     strict=False,
-        # )
 
         self.model.eval()
 
@@ -143,35 +117,30 @@ else:
         ModelClass(
             name="pure",
             path="output/pure/RobertaForSequenceClassificationPure_fold_3_epoch_5.pth",
-            num_labels=len(EMOTION_LABELS),
         )
     )
     models.append(
         ModelClass(
             name="deep",
             path="output/deep/RobertaForSequenceClassificationDeep_fold_2_epoch_8.pth",
-            num_labels=len(EMOTION_LABELS),
         )
     )
     models.append(
         ModelClass(
             name="mean",
             path="output/mean/RobertaForSequenceClassificationMeanPooling_fold_5_epoch_8.pth",
-            num_labels=len(EMOTION_LABELS),
         )
     )
     models.append(
         ModelClass(
             name="max",
             path="output/max/RobertaForSequenceClassificationMaxPooling_fold_3_epoch_8.pth",
-            num_labels=len(EMOTION_LABELS),
         )
     )
     models.append(
         ModelClass(
             name="attention",
             path="output/attention/RobertaForSequenceClassificationAttentionPooling_fold_5_epoch_7.pth",
-            num_labels=len(EMOTION_LABELS),
         )
     )
 
