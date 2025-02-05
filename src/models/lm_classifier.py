@@ -120,3 +120,55 @@ class AttentionPooling(nn.Module):
         attention_weights = torch.softmax(scores, dim=1)
         context_vector = torch.sum(hidden_states * attention_weights.unsqueeze(-1), dim=1)
         return context_vector
+
+class AggregatedLayers(nn.Module):
+    def __init__(self, num_layers):
+        super(AggregatedLayers, self).__init__()
+        self.weights = nn.Parameter(torch.ones(num_layers) / num_layers)
+    
+    def forward(self, all_hidden_states):
+        # stack hidden states
+        all_hidden_states = torch.stack(all_hidden_states, dim=0)
+        # weighted sum of all layers
+        weighted_layers = torch.sum( weighted_layers = torch.sum(self.weights[:, None, None, None] * all_hidden_states, dim=0), dim=0)
+        return weighted_layers
+
+class MeanMaxAttentionPooling(nn.Module):
+    def __init__(self, hidden_dim):
+        super(MeanMaxAttentionPooling, self).__init__()
+        self.attention_pooling = AttentionPooling(hidden_dim).to('cuda' if torch.cuda.is_available() else 'cpu')
+
+    def forward(self, hidden_states, attention_mask):
+        # max pooling first
+        max_pooling = torch.max(hidden_states, dim=1)[0]
+        # mean pooling
+        sum_hidden = torch.sum(hidden_states, dim=1)
+        sum_mask = torch.clamp(attention_mask.sum(dim=1, keepdim=True), min=1)
+        mean_pooling = sum_hidden / sum_mask
+        # attention_pooling 
+        attention_pooling = self.attention_pooling(hidden_states, attention_mask)
+
+        return torch.cat([mean_pooling, max_pooling, attention_pooling], dim=1)
+    
+class PoolingRoberta(nn.Module):
+    def __init__(self, bacbbone, num_classes):
+        super(PoolingRoberta, self).__init__()
+        self.name = "PoolingRoberta"
+        self.backbone = RobertaModel.from_pretrained(bacbbone)
+        #self.layer_aggregation = AggregatedLayers(num_layers=4)
+        self.pooling = MeanMaxAttentionPooling(hidden_dim=768).to('cuda' if torch.cuda.is_available() else 'cpu')
+        self.clasifier = nn.Sequential(
+            nn.Linear(768 * 3, 768),
+            nn.ReLU(),
+            nn.LayerNorm(768),
+            nn.Linear(768, num_classes)
+        )
+    
+    def forward(self, input_ids, attention_mask):
+        outputs = self.backbone(input_ids, attention_mask, output_hidden_states=True)
+        hidden_states = outputs.hidden_states[-4:]
+        aggregated_hidden_states = torch.mean(torch.stack(hidden_states, dim=0), dim=0)
+        pooled_outout = self.pooling(aggregated_hidden_states, attention_mask)
+        out = self.clasifier(pooled_outout)
+        print("Completed first forward pass!")
+        return out

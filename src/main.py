@@ -26,6 +26,8 @@ def select_model(name, backbone, num_labels, device):
         return RobertaForSequenceClassificationMaxPooling(backbone, num_labels).to(device=device)
     elif name == 'attention':
         return RobertaForSequenceClassificationAttentionPooling(backbone, num_labels).to(device=device)
+    elif name == 'pool':
+        return PoolingRoberta(backbone, num_labels).to(device=device)
     else:
         raise ValueError('Specified model name is not available!')
 

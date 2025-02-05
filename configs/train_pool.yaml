@@ -1,0 +1,12 @@
+model_name : pool
+backbone: 'roberta-base'
+data: '../data/eng_a_parsed.json'
+model_path: '../outputs/models'
+stat_path: '../outputs/statistics'
+test: 'a'
+weighted: True
+mapping: reduced
+num_labels: 6
+lr: 1e-5
+epochs: 5
+batch_size: 16
