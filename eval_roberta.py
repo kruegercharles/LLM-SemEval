@@ -366,10 +366,14 @@ def statistics():
     plt.figure()
 
     model_names = [model.name for model in models]
-    accuracies = [model.accuracy for model in models]
+    # accuracies = [model.accuracy for model in models]
     f1_scores_micro = [model.f1_score_micro for model in models]
     f1_scores_macro = [model.f1_score_macro for model in models]
-    f1_scores_weighted = [model.f1_score_weighted for model in models]
+    # f1_scores_weighted = [model.f1_score_weighted for model in models]
+
+    model_names.insert(0, "Baseline")
+    f1_scores_micro.insert(0, 0.74)
+    f1_scores_macro.insert(0, 0.65)
 
     x = np.arange(len(model_names))  # the label locations
     width = 0.15  # the width of the bars
@@ -379,13 +383,13 @@ def statistics():
     # Plot the bars sequentially
     bar_positions = x
 
-    rects3 = ax.bar(bar_positions, accuracies, width, label="Accuracy")
-    bar_positions = [p + width for p in bar_positions]
+    # rects3 = ax.bar(bar_positions, accuracies, width, label="Accuracy")
+    # bar_positions = [p + width for p in bar_positions]
     rects4 = ax.bar(bar_positions, f1_scores_micro, width, label="F1-Score micro")
     bar_positions = [p + width for p in bar_positions]
     rects5 = ax.bar(bar_positions, f1_scores_macro, width, label="F1-Score macro")
-    bar_positions = [p + width for p in bar_positions]
-    rects6 = ax.bar(bar_positions, f1_scores_weighted, width, label="F1-Score weighted")
+    # bar_positions = [p + width for p in bar_positions]
+    # rects6 = ax.bar(bar_positions, f1_scores_weighted, width, label="F1-Score weighted")
 
     # Add some text for labels, title and custom x-axis tick labels, etc.
     ax.set_ylabel("Scores")
@@ -413,17 +417,17 @@ def statistics():
 
     # autolabel(rects1)
     # autolabel(rects2)
-    autolabel(rects3)
+    # autolabel(rects3)
     autolabel(rects4)
     autolabel(rects5)
-    autolabel(rects6)
+    # autolabel(rects6)
 
     # add labels and title
     plt.xticks(rotation=45)
 
     plt.legend()
     plt.ylabel("Percentage")
-    plt.title("Evaluation Statistics")
+    plt.title("Result of the Evaluation with the SemEval evaluation dataset")
     plt.tight_layout(rect=[0.0, 0.03, 1, 1])  # Adjust the bottom margin
     ax.set_ylim(0, 1)
 
