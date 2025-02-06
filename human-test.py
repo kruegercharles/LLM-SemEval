@@ -611,8 +611,8 @@ def statistics(human: Human, overall: EnsembleVoting):
         output_data.append("F1-Score macro: " + str(model.f1_score_macro))
         output_data.append("F1-Score weighted: " + str(model.f1_score_weighted))
         output_data.append(" ")
-        output_data.append("*" * 50)
-        output_data.append(" ")
+    output_data.append("*" * 50)
+    output_data.append(" ")
 
     # Print statistics
     for line in output_data:

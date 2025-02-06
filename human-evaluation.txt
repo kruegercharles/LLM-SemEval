@@ -1,0 +1,117 @@
+Statistics:
+Human 'Charly':
+Human Precision: 0.65
+Human Recall: 0.58
+Human Accuracy: 0.76
+Human F1-Score micro: 0.5
+Human F1-Score macro: 0.54
+Human F1-Score weighted: 0.53
+
+Overall 'Ensemble Voting':
+Overall Precision: 0.81
+Overall Recall: 0.92
+Overall Accuracy: 0.92
+Overall F1-Score micro: 0.87
+Overall F1-Score macro: 0.83
+Overall F1-Score weighted: 0.87
+
+Model 'pure':
+Precision: 0.76
+Recall: 0.83
+Accuracy: 0.88
+F1-Score micro: 0.78
+F1-Score macro: 0.75
+F1-Score weighted: 0.79
+
+Model 'deep':
+Precision: 0.72
+Recall: 0.83
+Accuracy: 0.9
+F1-Score micro: 0.83
+F1-Score macro: 0.74
+F1-Score weighted: 0.83
+
+Model 'mean':
+Precision: 0.79
+Recall: 0.85
+Accuracy: 0.9
+F1-Score micro: 0.82
+F1-Score macro: 0.78
+F1-Score weighted: 0.82
+
+Model 'max':
+Precision: 0.81
+Recall: 0.92
+Accuracy: 0.92
+F1-Score micro: 0.87
+F1-Score macro: 0.83
+F1-Score weighted: 0.87
+
+Model 'attention':
+Precision: 0.79
+Recall: 0.92
+Accuracy: 0.91
+F1-Score micro: 0.85
+F1-Score macro: 0.81
+F1-Score weighted: 0.86
+
+**************************************************
+Statistics:
+Human 'Elia':
+Human Precision: 0.57
+Human Recall: 0.63
+Human Accuracy: 0.78
+Human F1-Score micro: 0.58
+Human F1-Score macro: 0.57
+Human F1-Score weighted: 0.59
+ 
+Overall 'Ensemble Voting':
+Overall Precision: 0.81
+Overall Recall: 0.92
+Overall Accuracy: 0.92
+Overall F1-Score micro: 0.87
+Overall F1-Score macro: 0.83
+Overall F1-Score weighted: 0.87
+ 
+Model 'pure':
+Precision: 0.76
+Recall: 0.83
+Accuracy: 0.88
+F1-Score micro: 0.78
+F1-Score macro: 0.75
+F1-Score weighted: 0.79
+ 
+Model 'deep':
+Precision: 0.72
+Recall: 0.83
+Accuracy: 0.9
+F1-Score micro: 0.83
+F1-Score macro: 0.74
+F1-Score weighted: 0.83
+ 
+Model 'mean':
+Precision: 0.79
+Recall: 0.85
+Accuracy: 0.9
+F1-Score micro: 0.82
+F1-Score macro: 0.78
+F1-Score weighted: 0.82
+ 
+Model 'max':
+Precision: 0.81
+Recall: 0.92
+Accuracy: 0.92
+F1-Score micro: 0.87
+F1-Score macro: 0.83
+F1-Score weighted: 0.87
+ 
+Model 'attention':
+Precision: 0.79
+Recall: 0.92
+Accuracy: 0.91
+F1-Score micro: 0.85
+F1-Score macro: 0.81
+F1-Score weighted: 0.86
+ 
+**************************************************
+ 
