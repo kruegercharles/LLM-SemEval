@@ -7,5 +7,5 @@ test: 'b'
 weighted: True
 num_labels: 16
 lr: 1e-5
-epochs: 8
+epochs: 16
 batch_size: 16
