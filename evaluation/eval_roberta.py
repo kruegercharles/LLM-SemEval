@@ -1,13 +1,18 @@
 import json  # noqa
 import os  # noqa
 import random  # noqa
+import sys
+
+# Add the parent folder to the path
+current_folder = os.path.dirname(os.path.abspath(__file__))
+parent_folder = os.path.dirname(current_folder)
+sys.path.insert(0, parent_folder)
 
 import matplotlib.pyplot as plt  # noqa
 import numpy as np  # noqa
 import torch  # noqa
 from torch import Tensor  # noqa
-from transformers import RobertaForSequenceClassification  # noqa
-from transformers import RobertaTokenizer
+from transformers import RobertaTokenizer  # noqa
 
 import copy  # noqa
 
@@ -18,18 +23,9 @@ from common import *  # noqa
 """
 This script performs emotion classification using an ensemble of RoBERTa models.
 
-It loads a pre-trained RoBERTa model fine-tuned for emotion classification.
-For each input prompt, it runs the model multiple times.
-It uses a voting system to aggregate the predictions from each run.
-The final predicted emotions are those that receive at least half the total votes.
-The script compares the final predictions with expected answers for evaluation.
-
-Key aspects:
 - Uses a pre-trained RoBERTa model.
 - Employs an ensemble method with voting.
-- Predicts multiple emotions for each prompt.
 - Evaluates predictions against expected answers.
-- Currently loads the same model multiple times, which limits the ensemble's effectiveness.
 """
 
 
@@ -143,23 +139,6 @@ else:
             path="output/attention/RobertaForSequenceClassificationAttentionPooling_fold_5_epoch_7.pth",
         )
     )
-
-    # models.append(
-    # ModelClass(name="RoBERTa base-model", path="models/roberta-base/")
-    # )  # base model
-    # models.append(
-    # ModelClass(name="Finetuned emotions_data", path="output/emotions-data/")
-    # )  # finetuned with emotions data
-    # models.append(
-    # ModelClass(name="Finetuned dair-ai", path="output/dair-ai/")
-    # )  # finetuned with dair-ai data
-    # models.append(
-    # ModelClass(name="Finetuned goemotions", path="output/goemotions/")
-    # )  # finetuned with goemotions data
-    # models.append(
-    # ModelClass(name="Finetuned merged_dataset", path="output/merged-dataset/")
-    # )  # finetuned with merged dataset """
-
 
 TOKENIZER_PATH = "models/roberta-base/"
 
@@ -355,11 +334,11 @@ def statistics():
 
     # Save statistics to file
     if USE_COMPLEXE_EMOTIONS:
-        with open("evaluation_statistics_text_complexe.txt", "w") as f:
+        with open("output/evaluation_statistics_text_complexe.txt", "w") as f:
             for line in output_data:
                 f.write(str(line) + "\n")
     else:
-        with open("evaluation_statistics_text.txt", "w") as f:
+        with open("output/evaluation_statistics_text.txt", "w") as f:
             for line in output_data:
                 f.write(str(line) + "\n")
 
@@ -435,9 +414,9 @@ def statistics():
 
     # save the plot
     if USE_COMPLEXE_EMOTIONS:
-        fig.savefig("evaluation_statistics_plot_complexe.png")
+        fig.savefig("output/evaluation_statistics_plot_complexe.png")
     else:
-        fig.savefig("evaluation_statistics_plot.png")
+        fig.savefig("output/evaluation_statistics_plot.png")
 
     plt.show()
 
