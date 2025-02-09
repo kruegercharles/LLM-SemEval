@@ -1,5 +1,9 @@
 import re
 
+import torch
+import torch.nn as nn
+from transformers import RobertaModel
+
 
 def remove_junk(line: str) -> str:
     line = line.replace("\n", "")
@@ -62,7 +66,7 @@ EMOTION_LABELS = [
     "joy",
     "sadness",
     "surprise",
-    "disgust",
+    # "disgust",
     "none",
 ]
 
@@ -89,96 +93,165 @@ EMOTION_COMPLEX_LABELS = [
 
 
 def get_precision(tp: int, fp: int) -> float:
-    return round(tp / (tp + fp), 2)
+    if tp + fp == 0:
+        return 0
+    return tp / (tp + fp)
 
 
 def get_recall(tp: int, fn: int) -> float:
-    return round(tp / (tp + fn), 2)
+    if tp + fn == 0:
+        return 0
+    return tp / (tp + fn)
 
 
-def get_f1_score(precision: int, recall: int) -> float:
-    return round(2 * (precision * recall) / (precision + recall), 2)
+def get_f1_score(tp: int, fp: int, fn: int) -> float:
+    precision = get_precision(tp, fp)
+    recall = get_recall(tp, fn)
+    if precision + recall == 0:
+        return 0
+    return 2 * (precision * recall) / (precision + recall)
 
 
 def get_accuracy(tp: int, fp: int, tn: int, fn: int) -> float:
-    return round((tp + tn) / (tp + fp + tn + fn), 2)
+    if tp + fp + tn + fn == 0:
+        return 0
+    return (tp + tn) / (tp + fp + tn + fn)
 
 
-def get_f1_score_macro(labels, predicitions) -> float:
-    assert len(labels) == len(predicitions)
+def select_model(name, backbone, num_labels, device):
+    if name == "pure":
+        return RobertaForSequenceClassificationPure(backbone, num_labels).to(device)
+    elif name == "deep":
+        return RobertaForSequenceClassificationDeep(backbone, num_labels).to(device)
+    elif name == "mean":
+        return RobertaForSequenceClassificationMeanPooling(backbone, num_labels).to(
+            device
+        )
+    elif name == "max":
+        return RobertaForSequenceClassificationMaxPooling(backbone, num_labels).to(
+            device
+        )
+    elif name == "attention":
+        return RobertaForSequenceClassificationAttentionPooling(
+            backbone, num_labels
+        ).to(device)
+    else:
+        raise ValueError("Specified model name is not available!")
 
-    f1_scores = []
 
-    for label, prediction in zip(labels, predicitions):
-        solution = set(label)
-        answer = set(prediction)
-
-        total = len(solution.union(answer))
-
-        true_negatives = 0
-        for element in EMOTION_LABELS:
-            if element not in solution and element not in answer:
-                true_negatives += 1
-
-        # get the intersection of the two sets and remove them from both sets
-        intersection = answer.intersection(solution)
-        true_positives = len(intersection)
-
-        answer -= intersection
-        solution -= intersection
-
-        false_positives = len(answer)
-        false_negatives = len(solution)
-
-        assert true_positives + false_positives + false_negatives == total
-
-        f1_scores.append(
-            true_positives
-            / (true_positives + 0.5 * (false_positives + false_negatives))
+class RobertaForSequenceClassificationAttentionPooling(nn.Module):
+    def __init__(self, backbone, num_classes):
+        super(RobertaForSequenceClassificationAttentionPooling, self).__init__()
+        self.name = "RobertaForSequenceClassificationAttentionPooling"
+        self.backbone = RobertaModel.from_pretrained(backbone)
+        self.attention_pooling = AttentionPooling(self.backbone.config.hidden_size).to(
+            "cuda" if torch.cuda.is_available() else "cpu"
+        )
+        self.classifier = nn.Sequential(
+            nn.Linear(768, 768), nn.Dropout(0.1), nn.Linear(768, num_classes)
         )
 
-    return round(sum(f1_scores) / len(f1_scores), 2)
+    def forward(self, input_ids, attention_mask):
+        cls = self.backbone(input_ids, attention_mask)
+        cls = cls.last_hidden_state
+        cls = self.attention_pooling(cls, attention_mask)
+        cls = self.classifier(cls)
+        return cls
 
 
-def get_f1_score_weighted(labels, predicitions) -> float:
-    assert len(labels) == len(predicitions)
-
-    f1_scores = []
-    support = []
-
-    for label, prediction in zip(labels, predicitions):
-        solution = set(label)
-        answer = set(prediction)
-
-        total = len(solution.union(answer))
-
-        true_negatives = 0
-        for element in EMOTION_LABELS:
-            if element not in solution and element not in answer:
-                true_negatives += 1
-
-        # get the intersection of the two sets and remove them from both sets
-        intersection = answer.intersection(solution)
-        true_positives = len(intersection)
-
-        answer -= intersection
-        solution -= intersection
-
-        false_positives = len(answer)
-        false_negatives = len(solution)
-
-        assert true_positives + false_positives + false_negatives == total
-
-        f1_scores.append(
-            true_positives
-            / (true_positives + 0.5 * (false_positives + false_negatives))
+class RobertaForSequenceClassificationMaxPooling(nn.Module):
+    def __init__(self, backbone, num_classes):
+        super(RobertaForSequenceClassificationMaxPooling, self).__init__()
+        self.name = "RobertaForSequenceClassificationMaxPooling"
+        self.backbone = RobertaModel.from_pretrained(backbone)
+        self.classifier = nn.Sequential(
+            nn.Linear(768, 768), nn.Dropout(0.1), nn.Linear(768, num_classes)
         )
 
-        support.append(true_positives + false_negatives)
+    def forward(self, input_ids, attention_mask):
+        cls = self.backbone(input_ids, attention_mask)
+        cls = cls.last_hidden_state
+        cls = self.max_pooling(cls, attention_mask)
+        cls = self.classifier(cls)
+        return cls
 
-    weighted = 0
+    def max_pooling(self, hidden_states, attention_mask):
+        mask_exp = attention_mask.unsqueeze(-1).expand(hidden_states.size())
+        hidden_states[mask_exp == 0] = -1e9
+        return torch.max(hidden_states, dim=1)[0]
 
-    for i in range(len(labels)):
-        weighted += support[i] * f1_scores[i]
 
-    return round(weighted / sum(support), 2)
+class RobertaForSequenceClassificationMeanPooling(nn.Module):
+    def __init__(self, backbone, num_classes):
+        super(RobertaForSequenceClassificationMeanPooling, self).__init__()
+        self.name = "RobertaForSequenceClassificationMeanPooling"
+        self.backbone = RobertaModel.from_pretrained(backbone)
+        self.classifier = nn.Sequential(
+            nn.Linear(768, 768), nn.Dropout(0.1), nn.Linear(768, num_classes)
+        )
+
+    def forward(self, input_ids, attention_mask):
+        cls = self.backbone(input_ids, attention_mask)
+        cls = cls.last_hidden_state
+        cls = self.mean_pooling(cls, attention_mask)
+        cls = self.classifier(cls)
+        return cls
+
+    def mean_pooling(self, hidden_states, attention_mask):
+        mask_exp = attention_mask.unsqueeze(-1).expand(hidden_states.size())
+        sum_embeddings = torch.sum(hidden_states * mask_exp, dim=1)
+        sum_mask = torch.clamp(mask_exp.sum(dim=1), min=1e-9)
+        return sum_embeddings / sum_mask
+
+
+class RobertaForSequenceClassificationDeep(nn.Module):
+    def __init__(self, backbone, num_classes):
+        super(RobertaForSequenceClassificationDeep, self).__init__()
+        self.name = "RobertaForSequenceClassificationDeep"
+        self.backbone = RobertaModel.from_pretrained(backbone)
+        self.pre_classifier = nn.Linear(768, 768)
+        self.classifier = nn.Sequential(
+            nn.Linear(768, 768),
+            nn.Dropout(0.1),
+            nn.Linear(768, 256),
+            nn.ReLU(),
+            nn.Linear(256, 64),
+            nn.Linear(64, num_classes),
+        )
+
+    def forward(self, input_ids, attention_mask):
+        cls = self.backbone(input_ids, attention_mask)
+        cls = cls.last_hidden_state[:, 0, :]
+        cls = self.classifier(cls)
+        return cls
+
+
+class RobertaForSequenceClassificationPure(nn.Module):
+    def __init__(self, backbone, num_classes):
+        super(RobertaForSequenceClassificationPure, self).__init__()
+        self.name = "RobertaForSequenceClassificationPure"
+        self.backbone = RobertaModel.from_pretrained(backbone)
+        self.classifier = nn.Sequential(
+            nn.Linear(768, 768), nn.Dropout(0.1), nn.Linear(768, num_classes)
+        )
+
+    def forward(self, input_ids, attention_mask):
+        cls = self.backbone(input_ids, attention_mask)
+        cls = cls.last_hidden_state[:, 0, :]
+        cls = self.classifier(cls)
+        return cls
+
+
+class AttentionPooling(nn.Module):
+    def __init__(self, hidden_size):
+        super(AttentionPooling, self).__init__()
+        self.attention_weights = nn.Linear(hidden_size, 1)
+
+    def forward(self, hidden_states, attention_mask):
+        scores = self.attention_weights(hidden_states).squeeze(-1)
+        scores = scores.masked_fill(attention_mask == 0, -1e9)
+        attention_weights = torch.softmax(scores, dim=1)
+        context_vector = torch.sum(
+            hidden_states * attention_weights.unsqueeze(-1), dim=1
+        )
+        return context_vector
