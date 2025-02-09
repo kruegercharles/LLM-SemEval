@@ -1,0 +1,11 @@
+model_name : pure
+backbone: 'roberta-base'
+data: '../data/eng_b_parsed.json'
+model_path: '../outputs/models/task_b/pure'
+stat_path: '../outputs/statistics/task_b/pure'
+test: 'b'
+weighted: True
+num_labels: 16
+lr: 1e-5
+epochs: 16
+batch_size: 16

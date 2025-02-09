@@ -1,0 +1,12 @@
+model_name : deep
+backbone: 'roberta-base'
+data: '../data/merged_data_c.json'
+model_path: '../outputs/models/task_a/large/deep'
+stat_path: '../outputs/statistics/task_a/large/deep'
+test: 'a'
+weighted: True
+mapping: reduced
+num_labels: 6
+lr: 1e-5
+epochs: 1
+batch_size: 64

@@ -161,3 +161,22 @@ cython_debug/
 
 # Models
 models/checkpoints/Llama3.1-8B-Instruct/*
+data/codabench_data/train/combined/*
+data/merged_data.json
+data/data_15k.json
+data/data_15k_c.json
+data/merged_data_c.json
+models/*
+!models/.gitkeep
+!models/checkpoints/.gitkeep
+
+# Ignore everything in cache-dir except .gitkeep
+cache-dir/*
+!cache-dir/.gitkeep
+
+output/*
+
+data/
+!data/codabench_data/*
+
+llama-stuff

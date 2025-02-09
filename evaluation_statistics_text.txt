@@ -1,0 +1,54 @@
+Statistics:
+Precision overall: 0.53
+Recall overall: 0.36
+Accuracy overall: 0.78
+F1-Score overall: 0.43
+F1-Score macro overall: 0.39
+F1-Score weighted overall: 0.34
+Average correct emotions: 35.78%
+ 
+Model 'Finetuned semeval':
+Percentage correct: 59.84%
+Precision: 0.71
+Recall: 0.68
+F1-Score: 0.69
+Accuracy: 0.86
+F1-Score macro: 0.66
+F1-Score weighted: 0.7
+ 
+Model 'Finetuned emotions_data':
+Percentage correct: 28.02%
+Precision: 0.39
+Recall: 0.24
+F1-Score: 0.3
+Accuracy: 0.74
+F1-Score macro: 0.31
+F1-Score weighted: 0.28
+ 
+Model 'Finetuned dair-ai':
+Percentage correct: 26.94%
+Precision: 0.45
+Recall: 0.28
+F1-Score: 0.35
+Accuracy: 0.75
+F1-Score macro: 0.32
+F1-Score weighted: 0.36
+ 
+Model 'Finetuned goemotions':
+Percentage correct: 24.43%
+Precision: 0.31
+Recall: 0.19
+F1-Score: 0.24
+Accuracy: 0.71
+F1-Score macro: 0.26
+F1-Score weighted: 0.22
+ 
+Model 'Finetuned merged_dataset':
+Percentage correct: 50.43%
+Precision: 0.66
+Recall: 0.41
+F1-Score: 0.51
+Accuracy: 0.81
+F1-Score macro: 0.55
+F1-Score weighted: 0.47
+ 

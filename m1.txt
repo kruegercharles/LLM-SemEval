@@ -1,0 +1,49 @@
+fold_1 : {
+  loss : {
+    training : []
+    validation : []
+  }
+  precision : {
+    macro : x
+    micro : x
+  }
+  recall : {
+    macro : x
+    micro : x
+  }
+  accuracy : {
+    macro : x
+    micro : x
+  }
+  f1 : {
+    macro : x
+    micro : x
+  }
+}
+fold_2 : {
+
+}
+
+average : {
+  loss : {
+    training : []
+    validation : []
+    test : x
+  }
+  precision : {
+    macro : x
+    micro : x
+  }
+  recall : {
+    macro : x
+    micro : x
+  }
+  accuracy : {
+    macro : x
+    micro : x
+  }
+  f1 : {
+    macro : x
+    micro : x
+  }
+}
